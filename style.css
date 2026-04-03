@@ -27,3 +27,26 @@ body {
     align-items: center;
     gap: 10px;
 }
+
+.setup-columns { display: flex; gap: 20px; }
+.column { flex: 1; background: #252525; padding: 10px; border-radius: 8px; }
+
+.team-slot {
+    background: #333;
+    border: 1px solid var(--uha-blue);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.team-header { font-size: 0.8em; color: var(--uha-gold); margin-bottom: 5px; }
+
+.player-item {
+    cursor: pointer;
+    background: #444;
+    padding: 5px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+    transition: background 0.2s;
+}
+.player-item:hover { background: var(--uha-blue); }
