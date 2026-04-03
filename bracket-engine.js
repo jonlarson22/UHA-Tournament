@@ -58,3 +58,18 @@ export class TournamentEngine {
         return { championshipSeeds, consolationSeeds };
     }
 }
+
+    function calculateUHAPoints(games) {
+        let wGames = 0;
+        let lGames = 0;
+    
+        games.forEach(g => {
+            if (g.w > g.l) wGames++;
+            else lGames++;
+        });
+    
+        if (wGames > lGames) {
+            return { winnerPoints: 2, loserPoints: (lGames === 1 ? 1 : 0) };
+        }
+        return { winnerPoints: (wGames === 1 ? 1 : 0), loserPoints: 2 };
+    }
