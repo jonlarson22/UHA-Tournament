@@ -13,6 +13,16 @@ const db = firebase.database();
 
 let allPlayers = []; 
 let isDoublesMode = false;
+let isAdmin = true;
+let lockedDivisions = [];
+
+if (isAdmin) {
+    document.getElementById('admin-dashboard').style.display = 'block';
+    document.getElementById('public-viewer').style.display = 'none';
+} else {
+    document.getElementById('admin-dashboard').style.display = 'none';
+    document.getElementById('public-viewer').style.display = 'block';
+}
 
 const teamDraftArea = document.getElementById('team-draft-area');
 const playerListDiv = document.getElementById('player-list');
@@ -135,6 +145,49 @@ teamDraftArea.addEventListener('click', (e) => {
         slot.remove();
         renderRoster(); 
     }
+});
+
+document.getElementById('btn-add-wildcard').addEventListener('click', () => {
+    const nameStr = document.getElementById('wildcard-name').value;
+    const eloVal = document.getElementById('wildcard-elo').value;
+    
+    if (!nameStr) return alert("Enter a wildcard name");
+
+    const fakePlayerItem = document.createElement('div');
+    fakePlayerItem.className = 'player-item';
+    fakePlayerItem.dataset.id = 'wildcard_' + Date.now();
+    fakePlayerItem.dataset.name = nameStr + " (WC)";
+    fakePlayerItem.dataset.elo = eloVal || 1000;
+
+    playerListDiv.appendChild(fakePlayerItem);
+    fakePlayerItem.click(); 
+
+    document.getElementById('wildcard-name').value = '';
+});
+
+document.getElementById('btn-lock-division').addEventListener('click', () => {
+    const divName = document.getElementById('division-name').value;
+    const format = document.getElementById('tourney-type').value;
+    
+    const participantElements = document.querySelectorAll('.singles-slot, .team-slot');
+    if (participantElements.length < 2) return alert("Need at least 2 participants to lock a division.");
+
+    const participants = Array.from(participantElements).map(el => ({
+        name: el.dataset.finalName,
+        elo: parseInt(el.dataset.finalElo)
+    }));
+
+    lockedDivisions.push({
+        name: divName,
+        format: format,
+        participants: participants
+    });
+
+    const divLog = document.getElementById('locked-divisions-list');
+    divLog.innerHTML += `<div>✅ Locked <b>${divName}</b> (${participants.length} teams, ${format})</div>`;
+
+    document.getElementById('team-draft-area').innerHTML = '';
+    renderRoster();
 });
 
 function updateTeamElo(teamDiv) {
