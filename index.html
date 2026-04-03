@@ -1,35 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>UHA Tournament Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<main>
+            <section id="public-viewer" style="display:none;">
+                <div class="section-title">Live Tournament Brackets</div>
+                <select id="public-tournament-selector" class="uha-input" style="margin-bottom: 20px;">
+                    <option value="active">Current Live Tournament</option>
+                    </select>
+                <div id="public-bracket-container">Loading brackets...</div>
+            </section>
 
-    <div id="toast" style="display: none; opacity: 0; transition: all 0.3s; position: fixed; top: -50px; left: 50%; transform: translateX(-50%); background: #2ecc71; color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; font-weight: bold;"></div>
-    
-    <div class="uha-container">
-        <header class="uha-header">
-            <h1>UTAH HANDBALL ASSOCIATION</h1>
-            <p>Tournament Dashboard</p>
-            <div id="connection-status" style="font-size: 11px; margin-top: 5px; color:#888;">Connecting to Firebase...</div>
-            <div class="divider"></div>
-        </header>
-
-        <main>
-            <section id="setup-container">
-                <div class="section-title">1. Tournament Mode</div>
-                
-                <div class="mode-toggle">
+            <section id="admin-dashboard">
+                <div class="section-title">1. Tournament Mode & Wildcards</div>
+                <div class="mode-toggle" style="margin-bottom: 15px;">
                     <button class="mode-btn active" id="btn-mode-singles">Singles</button>
                     <button class="mode-btn" id="btn-mode-doubles">Doubles</button>
                 </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="wildcard-name" placeholder="Wildcard Name..." style="flex:2;">
+                    <input type="number" id="wildcard-elo" placeholder="Est ELO" value="1000" style="flex:1; width:80px;">
+                    <button id="btn-add-wildcard" class="uha-btn" style="flex:1;">+ Add Wildcard</button>
+                </div>
 
-                <div class="section-title">2. Draft Participants</div>
+                <div class="section-title">2. Draft Division</div>
                 <div class="setup-columns">
                     <div class="column">
-                        <input type="text" id="player-search" placeholder="Search players...">
+                        <input type="text" id="player-search" placeholder="Search roster...">
                         <div id="player-list"></div>
                     </div>
 
@@ -39,22 +33,26 @@
                 </div>
                 
                 <div class="divider"></div>
-                <div class="section-title">3. Finalize Config</div>
-                <button id="btn-start" class="uha-btn">Launch Tournament</button>
+                <div class="section-title">3. Lock Division & Format</div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="division-name" placeholder="e.g., Open, A, B..." value="Open Division" style="flex:1;">
+                    <select id="tourney-type" style="flex:1;">
+                        <option value="round_robin">Round Robin</option>
+                        <option value="single_elim">Single Elimination</option>
+                    </select>
+                </div>
+                
+                <button id="btn-lock-division" class="uha-btn" style="background-color: var(--uha-gold); color: #000;">Lock Current Division</button>
+                
+                <div id="locked-divisions-list" style="margin-top: 15px; color: var(--text-muted); font-size: 14px;"></div>
+
+                <div class="divider"></div>
+                <button id="btn-start" class="uha-btn">Preview & Push to Live</button>
             </section>
 
             <section id="tournament-view" style="display:none;">
-                <div class="section-title" id="tourney-title">Round Robin Matchups</div>
                 <div id="matchup-container"></div>
-                <button onclick="location.reload()" class="uha-btn-outline" style="margin-top:20px;">End Tournament</button>
+                <button onclick="location.reload()" class="uha-btn-outline" style="margin-top:20px;">Back to Setup</button>
             </section>
         </main>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <script src="app.js"></script>
-</body>
-</html>
