@@ -178,3 +178,39 @@ input[type="text"], select {
     margin-top: 10px;
 }
 .uha-btn-outline:hover { background: #252525; }
+
+.singles-slot {
+    background: #111;
+    border: 1px solid var(--border-color);
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.singles-info {
+    font-weight: bold;
+}
+
+.singles-elo {
+    color: var(--uha-blue);
+    margin-left: 10px;
+}
+
+.match-card {
+    background: #1a1a1a;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.match-card:hover { border-color: var(--uha-blue); }
+.match-team { font-weight: bold; font-size: 16px; }
+.match-vs { color: var(--text-muted); font-size: 12px; margin: 0 15px; }
