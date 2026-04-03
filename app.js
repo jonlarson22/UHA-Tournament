@@ -2,20 +2,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
-    // PASTE YOUR EXISTING UHA CONFIG HERE
-    apiKey: "...",
-    authDomain: "...",
-    databaseURL: "...",
-    projectId: "...",
-    storageBucket: "...",
-    messagingSenderId: "...",
-    appId: "..."
+   apiKey: "AIzaSyCCV_WHA1Q7WKawfG68Y9z40xINVg5zbmw",
+   authDomain: "utah-handball.firebaseapp.com",
+   databaseURL: "https://utah-handball-default-rtdb.firebaseio.com",
+   projectId: "utah-handball",
+   storageBucket: "utah-handball.firebasestorage.app",
+   messagingSenderId: "4109545863",
+   appId: "1:4109545863:web:6a6de7f532be0bc20f2322"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Fetch players and render the checkbox list
 const playerListDiv = document.getElementById('player-list');
 
 onValue(ref(db, 'players'), (snapshot) => {
@@ -26,7 +24,7 @@ onValue(ref(db, 'players'), (snapshot) => {
 
 function renderPlayerCheckboxes(players) {
     playerListDiv.innerHTML = '';
-    // Sort by ELO descending for easy seeding
+
     const sorted = Object.values(players).sort((a, b) => b.current_elo - a.current_elo);
 
     sorted.forEach(player => {
