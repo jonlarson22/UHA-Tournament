@@ -1,22 +1,19 @@
-export class TournamentEngine {
+class TournamentEngine {
     constructor(db) {
         this.db = db;
         this.currentTournament = null;
     }
 
-    generateSeeding(participants, isDoubles) {
+    generateSeeding(participants) {
         return participants.sort((a, b) => b.elo - a.elo).map((p, index) => ({
-            id: p.id,
+            id: p.id || `team-${index}`,
             name: p.name,
             seed: index + 1
         }));
     }
 
     calculateMatchPoints(scoreA, scoreB) {
-
         let results = { pointsA: 0, pointsB: 0 };
-
-
         if (scoreA > scoreB) {
             results.pointsA = 2;
             results.pointsB = (scoreB === 1) ? 1 : 0;
@@ -29,16 +26,20 @@ export class TournamentEngine {
 
     async createRoundRobin(name, participants) {
         const seeding = this.generateSeeding(participants);
-        
+
         const stage = {
+            id: 1,
+            tournament_id: 1,
             name: name,
             type: 'round_robin',
-            settings: { groupCount: Math.ceil(participants.length / 4) },
-            participants: seeding
+            settings: { groupCount: Math.ceil(participants.length / 4) }
         };
 
-        console.log("Stage Created:", stage);
-        return stage;
+        return {
+            stage: stage,
+            matches: [],
+            participants: seeding
+        };
     }
 
     promoteToBrackets(standings) {
@@ -59,41 +60,40 @@ export class TournamentEngine {
     }
 }
 
-    function calculateUHAPoints(games) {
-        let wGames = 0;
-        let lGames = 0;
-    
-        games.forEach(g => {
-            if (g.w > g.l) wGames++;
-            else lGames++;
-        });
-    
-        if (wGames > lGames) {
-            return { winnerPoints: 2, loserPoints: (lGames === 1 ? 1 : 0) };
-        }
-        return { winnerPoints: (wGames === 1 ? 1 : 0), loserPoints: 2 };
+function calculateUHAPoints(games) {
+    let wGames = 0;
+    let lGames = 0;
+
+    games.forEach(g => {
+        if (g.w > g.l) wGames++;
+        else lGames++;
+    });
+
+    if (wGames > lGames) {
+        return { winnerPoints: 2, loserPoints: (lGames === 1 ? 1 : 0) };
+    }
+    return { winnerPoints: (wGames === 1 ? 1 : 0), loserPoints: 2 };
+}
+
+function processUHAStats(gameData) {
+    let setsA = 0;
+    let setsB = 0;
+
+    gameData.forEach(game => {
+        if (game.a > game.b) setsA++;
+        else if (game.b > game.a) setsB++;
+    });
+
+    let pointsA = 0;
+    let pointsB = 0;
+
+    if (setsA > setsB) {
+        pointsA = 2;
+        pointsB = (setsB === 1) ? 1 : 0;
+    } else {
+        pointsB = 2;
+        pointsA = (setsA === 1) ? 1 : 0;
     }
 
-        function processUHAStats(gameData) {
-
-            let setsA = 0;
-            let setsB = 0;
-        
-            gameData.forEach(game => {
-                if (game.a > game.b) setsA++;
-                else if (game.b > game.a) setsB++;
-            });
-        
-            let pointsA = 0;
-            let pointsB = 0;
-        
-            if (setsA > setsB) {
-                pointsA = 2;
-                pointsB = (setsB === 1) ? 1 : 0;
-            } else {
-                pointsB = 2;
-                pointsA = (setsA === 1) ? 1 : 0;
-            }
-        
-            return { pointsA, pointsB, scoreString: `${setsA}-${setsB}` };
-        }
+    return { pointsA, pointsB, scoreString: `${setsA}-${setsB}` };
+}
