@@ -45,6 +45,23 @@
         <section id="tournament-view">
             <div id="brackets-container" class="brackets-viewer"></div>
         </section>
+
+        <div id="score-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Match Score</h3>
+        <div class="score-row">
+            <span id="team-a-name">Team A</span>
+            <input type="number" id="g1-a"> <input type="number" id="g2-a"> <input type="number" id="g3-a">
+        </div>
+        <div class="score-row">
+            <span id="team-b-name">Team B</span>
+            <input type="number" id="g1-b"> <input type="number" id="g2-b"> <input type="number" id="g3-b">
+        </div>
+        <button id="save-score-btn">Save to Pending</button>
+        <button onclick="document.getElementById('score-modal').style.display='none'">Cancel</button>
+    </div>
+</div>
+    
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
