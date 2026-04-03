@@ -8,41 +8,32 @@ const firebaseConfig = {
     appId: "1:4109545863:web:6a6de7f532be0bc20f2322"
 };
 
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let isAdmin = false;
+let allPlayers = []; 
+let isDoublesMode = true;
 
-function adminLogin(email, password) {
-    firebase.auth().signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        isAdmin = true;
-        document.body.classList.add('admin-mode'); 
-        showToast("Admin Verified!");
-        refreshRosterFromDB(); 
-      })
-      .catch((error) => {
-        alert("Access Denied: " + error.message);
-      });
-}
+const teamDraftArea = document.getElementById('team-draft-area');
+const playerListDiv = document.getElementById('player-list');
 
-function checkAdmin() {
-    if (isAdmin) {
-        firebase.auth().signOut();
-        isAdmin = false;
-        document.body.classList.remove('admin-mode');
-        showToast("Logged out.");
-        refreshRosterFromDB();
-        return;
-    }
-    const email = prompt("Admin Email:");
-    const pass = prompt("Admin Password:");
-    if (email && pass) adminLogin(email, pass);
-}
+document.getElementById('btn-mode-singles').addEventListener('click', (e) => {
+    isDoublesMode = false;
+    e.target.classList.add('active');
+    document.getElementById('btn-mode-doubles').classList.remove('active');
+    document.getElementById('add-team-btn').style.display = 'none';
+    teamDraftArea.innerHTML = '';
+    renderRoster();
+});
 
-let allPlayers = [];
+document.getElementById('btn-mode-doubles').addEventListener('click', (e) => {
+    isDoublesMode = true;
+    e.target.classList.add('active');
+    document.getElementById('btn-mode-singles').classList.remove('active');
+    document.getElementById('add-team-btn').style.display = 'block';
+    teamDraftArea.innerHTML = '';
+    renderRoster();
+});
 
 function refreshRosterFromDB() {
     db.ref('players').once('value', (snapshot) => {
@@ -52,58 +43,80 @@ function refreshRosterFromDB() {
     });
 }
 
-function renderRoster() {
-    const playerListDiv = document.getElementById('player-list');
-    playerListDiv.innerHTML = '';
+function getDraftedPlayerIds() {
+    const draftedElements = Array.from(teamDraftArea.querySelectorAll('.player-item'));
+    return draftedElements.map(p => p.dataset.id);
+}
 
-    const isDoubles = document.getElementById('mode-type').value === 'doubles';
+function renderRoster() {
+    playerListDiv.innerHTML = '';
+    const draftedIds = getDraftedPlayerIds();
     
-    allPlayers.filter(p => p.active).sort((a, b) => {
-        const ratingA = isDoubles ? (a.doubles || 1000) : (a.singles || 1000);
-        const ratingB = isDoubles ? (b.doubles || 1000) : (b.singles || 1000);
+    let availablePlayers = allPlayers.filter(p => p.active && !draftedIds.includes(String(p.id)));
+    
+    availablePlayers.sort((a, b) => {
+        const ratingA = isDoublesMode ? (a.doubles || 1000) : (a.singles || 1000);
+        const ratingB = isDoublesMode ? (b.doubles || 1000) : (b.singles || 1000);
         return ratingB - ratingA;
-    }).forEach(player => {
+    });
+
+    availablePlayers.forEach(player => {
         const div = document.createElement('div');
         div.className = 'player-item';
         div.dataset.id = player.id;
         div.dataset.name = player.name;
-        div.dataset.elo = isDoubles ? (player.doubles || 1000) : (player.singles || 1000);
+        div.dataset.elo = isDoublesMode ? (player.doubles || 1000) : (player.singles || 1000);
         
-        div.innerText = `${player.name} (${Math.round(div.dataset.elo)})`;
+        div.innerHTML = `<span>${player.name}</span> <span style="color:var(--uha-blue)">${Math.round(div.dataset.elo)}</span>`;
         playerListDiv.appendChild(div);
     });
 }
 
-document.getElementById('mode-type').addEventListener('change', renderRoster);
-
-const teamDraftArea = document.getElementById('team-draft-area');
-
-document.getElementById('add-team-btn').addEventListener('click', () => {
+function createTeamSlot(playerItemElement = null) {
     const teamId = Date.now();
     const teamDiv = document.createElement('div');
     teamDiv.className = 'team-slot';
     teamDiv.innerHTML = `
-        <div class="team-header">Team <span class="team-elo">0</span> ELO</div>
-        <div class="slots" data-team-id="${teamId}" style="min-height:30px; border:1px dashed #555;"></div>
+        <div class="team-header">
+            <span>Team <span class="team-elo">0</span> ELO</span>
+            <button class="remove-team-btn">X</button>
+        </div>
+        <div class="slots" data-team-id="${teamId}"></div>
     `;
     teamDraftArea.appendChild(teamDiv);
-});
 
-document.getElementById('clear-teams-btn').addEventListener('click', () => {
-    teamDraftArea.innerHTML = '';
-    renderRoster();
-});
+    if (playerItemElement) {
+        teamDiv.querySelector('.slots').appendChild(playerItemElement);
+        updateTeamElo(teamDiv);
+    }
+}
 
-document.getElementById('player-list').addEventListener('click', (e) => {
+document.getElementById('add-team-btn').addEventListener('click', () => createTeamSlot());
+
+playerListDiv.addEventListener('click', (e) => {
     const playerItem = e.target.closest('.player-item');
     if (!playerItem) return;
 
-    const openSlot = document.querySelector('.team-slot:last-child .slots');
-    if (openSlot && openSlot.children.length < 2) {
-        openSlot.appendChild(playerItem);
-        updateTeamElo(openSlot.closest('.team-slot'));
+    if (!isDoublesMode) {
+        createTeamSlot(playerItem);
+        renderRoster();
     } else {
-        alert("Click '+ New Team' to create an empty slot first!");
+        const openSlot = document.querySelector('.team-slot:last-child .slots');
+        if (openSlot && openSlot.children.length < 2) {
+            openSlot.appendChild(playerItem);
+            updateTeamElo(openSlot.closest('.team-slot'));
+            renderRoster();
+        } else {
+            alert("Click '+ Add Empty Team Slot' first!");
+        }
+    }
+});
+
+teamDraftArea.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-team-btn')) {
+        const teamSlot = e.target.closest('.team-slot');
+        teamSlot.remove();
+        renderRoster();
     }
 });
 
@@ -125,7 +138,7 @@ document.getElementById('btn-start').addEventListener('click', async () => {
         elo: parseInt(t.dataset.finalElo)
     }));
 
-    if (participants.length < 2) return alert("You need at least 2 teams!");
+    if (participants.length < 2) return alert("You need at least 2 participants!");
 
     const tourneyData = await engine.createRoundRobin("Qualifying Groups", participants);
     
@@ -138,18 +151,5 @@ document.getElementById('btn-start').addEventListener('click', async () => {
         participants: tourneyData.participants
     });
 });
-
-function showToast(message, isError = false) {
-    const toast = document.getElementById('toast');
-    toast.innerText = message;
-    toast.style.background = isError ? "#e74c3c" : "#2ecc71";
-    toast.style.display = "block";
-    setTimeout(() => { toast.style.opacity = "1"; toast.style.top = "20px"; }, 10);
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.top = "-50px";
-        setTimeout(() => { toast.style.display = "none"; }, 300);
-    }, 3000);
-}
 
 refreshRosterFromDB();
