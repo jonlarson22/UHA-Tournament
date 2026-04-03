@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UHA Tournament</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.css" />
+</head>
+<body class="uha-dark-theme">
+
+    <header>
+        <h1>UHA Tournament Dashboard</h1>
+        <div id="connection-status">Connecting to Firebase...</div>
+    </header>
+
+    <main>
+        <section id="setup-container">
+            <h2>1. Select Players</h2>
+            <input type="text" id="player-search" placeholder="Search UHA Roster...">
+            <div id="player-list">
+                </div>
+            
+            <h2>2. Tournament Config</h2>
+            <select id="tourney-type">
+                <option value="singles">Singles</option>
+                <option value="doubles">Doubles (Ad-Hoc)</option>
+            </select>
+            <button id="btn-start">Generate Tournament</button>
+        </section>
+
+        <section id="tournament-view">
+            <div id="brackets-container" class="brackets-viewer"></div>
+        </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
