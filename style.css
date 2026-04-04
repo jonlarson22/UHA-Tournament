@@ -201,16 +201,45 @@ input[type="text"], input[type="number"], select {
 }
 .slots { padding: 10px; min-height: 40px; }
 
-/* --- MATCH CARDS --- */
+/* --- BRACKET & MATCH CARDS --- */
+.bracket-wrapper {
+    display: flex;
+    gap: 30px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 250px;
+    gap: 15px;
+}
+
 .match-card {
     background: #1a1a1a;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 15px;
-    margin-bottom: 10px;
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: center;
 }
-.match-team { font-weight: bold; font-size: 15px; }
-.match-vs { color: var(--text-muted); font-size: 12px; margin: 0 10px; }
+.match-team { font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; }
+.match-vs { color: var(--text-muted); font-size: 11px; margin: 5px 0; text-align: center; }
+
+.text-win { color: var(--green-win) !important; }
+.text-lose { color: var(--red-lose) !important; }
+
+.unlock-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: #444;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    float: right;
+}
+.unlock-btn:hover { background: #555; }
