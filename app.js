@@ -263,16 +263,59 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
     // Point 5: Initialize visual brackets
     lockedDivisions.forEach(division => {
-        if (division.format === 'single_elim' && division.bracket.length === 0) {
+        matchesHtml += `<div class="section-title" style="margin-top: 30px;">${division.name} (${division.format === 'round_robin' ? 'Round Robin' : 'Knockout'})</div>`;
+
+        if (division.format === 'round_robin') {
+            // Safety: Ensure at least 1 group is created even for small rosters
+            const groupCount = Math.max(1, Math.ceil(division.participants.length / 4));
+            const groups = Array.from({ length: groupCount }, () => []);
+            
+            let forward = true;
+            let groupIndex = 0;
+            
+            division.participants.forEach((p) => {
+                groups[groupIndex].push(p);
+                if (forward) {
+                    groupIndex++;
+                    if (groupIndex >= groupCount) { groupIndex--; forward = false; }
+                } else {
+                    groupIndex--;
+                    if (groupIndex < 0) { groupIndex++; forward = true; }
+                }
+            });
+
+            groups.forEach((group, gIndex) => {
+                if (group.length === 0) return; // Safety check
+                
+                matchesHtml += `<div style="background:#333; padding:8px 12px; margin-top:15px; font-weight:bold; color:var(--uha-gold); border-radius:4px;">Group ${String.fromCharCode(65 + gIndex)}</div>`;
+                for (let i = 0; i < group.length; i++) {
+                    for (let j = i + 1; j < group.length; j++) {
+                        matchesHtml += createMatchCard(group[i].name, group[j].name);
+                    }
+                }
+            });
+
+        } else if (division.format === 'single_elim') {
             let p = [...division.participants];
-            let round1 = [];
+            
+            // 1. Calculate next power of 2 for bracket size (e.g., 6 players -> next power is 8 -> requires 2 byes)
+            let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length)));
+            let numByes = nextPowerOf2 - p.length;
+            
+            // 2. Award byes to the top seeds first
+            for (let i = 0; i < numByes; i++) {
+                if (p.length > 0) {
+                    let byePlayer = p.shift(); // Pulls the top seed
+                    matchesHtml += `<div style="padding:15px; color:var(--uha-blue); font-style: italic; border: 1px solid #333; margin-bottom: 10px; border-radius: 6px;">** ${byePlayer.name} receives a Bye to Round 2 **</div>`;
+                }
+            }
+            
+            // 3. Match up the remaining players (Highest remaining vs Lowest remaining)
             while (p.length > 1) {
-                round1.push({ p1: p.shift(), p2: p.pop(), p1Wins: 0, p2Wins: 0, scores: '', winner: null });
+                let highSeed = p.shift();
+                let lowSeed = p.pop();
+                matchesHtml += createMatchCard(highSeed.name, lowSeed.name);
             }
-            if (p.length === 1) {
-                round1.push({ p1: p.shift(), p2: null, p1Wins: 0, p2Wins: 0, scores: 'BYE', winner: 'p1' });
-            }
-            division.bracket = [round1];
         }
     });
 
