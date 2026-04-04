@@ -19,13 +19,21 @@ let isAdmin = true;
 let lockedDivisions = [];
 
 // Ensure panels display correctly based on Admin state
-if (isAdmin) {
-    document.getElementById('admin-dashboard').style.display = 'block';
-    document.getElementById('public-viewer').style.display = 'none';
-} else {
-    document.getElementById('admin-dashboard').style.display = 'none';
-    document.getElementById('public-viewer').style.display = 'block';
+function updateVisibility() {
+    const resetBtn = document.getElementById('btn-reset');
+    
+    if (isAdmin) {
+        document.getElementById('admin-dashboard').style.display = 'block';
+        document.getElementById('public-viewer').style.display = 'none';
+        if(resetBtn) resetBtn.style.display = 'block'; // Show reset to Admin
+    } else {
+        document.getElementById('admin-dashboard').style.display = 'none';
+        document.getElementById('public-viewer').style.display = 'block';
+        if(resetBtn) resetBtn.style.display = 'none'; // Hide reset from Public
+    }
 }
+
+updateVisibility();
 
 const teamDraftArea = document.getElementById('team-draft-area');
 const playerListDiv = document.getElementById('player-list');
