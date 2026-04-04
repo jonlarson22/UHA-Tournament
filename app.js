@@ -25,14 +25,13 @@ function updateVisibility() {
     if (isAdmin) {
         document.getElementById('admin-dashboard').style.display = 'block';
         document.getElementById('public-viewer').style.display = 'none';
-        if(resetBtn) resetBtn.style.display = 'block'; // Show reset to Admin
+        if(resetBtn) resetBtn.style.display = 'block'; 
     } else {
         document.getElementById('admin-dashboard').style.display = 'none';
         document.getElementById('public-viewer').style.display = 'block';
-        if(resetBtn) resetBtn.style.display = 'none'; // Hide reset from Public
+        if(resetBtn) resetBtn.style.display = 'none'; 
     }
 }
-
 updateVisibility();
 
 const teamDraftArea = document.getElementById('team-draft-area');
@@ -44,7 +43,7 @@ document.getElementById('btn-mode-singles').addEventListener('click', (e) => {
     isDoublesMode = false;
     e.target.classList.add('active');
     document.getElementById('btn-mode-doubles').classList.remove('active');
-    document.getElementById('draft-header').innerText = "Selected Players"; // Point 3
+    document.getElementById('draft-header').innerText = "Selected Players";
     teamDraftArea.innerHTML = ''; 
     renderRoster();
 });
@@ -53,7 +52,7 @@ document.getElementById('btn-mode-doubles').addEventListener('click', (e) => {
     isDoublesMode = true;
     e.target.classList.add('active');
     document.getElementById('btn-mode-singles').classList.remove('active');
-    document.getElementById('draft-header').innerText = "Teams"; // Point 3
+    document.getElementById('draft-header').innerText = "Teams";
     teamDraftArea.innerHTML = ''; 
     renderRoster();
 });
@@ -213,8 +212,9 @@ document.getElementById('btn-lock-division').addEventListener('click', () => {
     lockedDivisions.push({
         name: divName,
         format: format,
+        mode: isDoublesMode ? "Doubles" : "Singles",
         participants: participants,
-        bracket: [] // We will store match progress here
+        bracket: [] 
     });
 
     renderLockedDivisions();
@@ -222,14 +222,13 @@ document.getElementById('btn-lock-division').addEventListener('click', () => {
     renderRoster();
 });
 
-// Point 4: Unlock Division
 function renderLockedDivisions() {
     const divLog = document.getElementById('locked-divisions-list');
     divLog.innerHTML = '';
     lockedDivisions.forEach((div, index) => {
         divLog.innerHTML += `
             <div style="background: rgba(52, 152, 219, 0.1); padding: 8px; border-radius: 4px; margin-bottom: 5px; border-left: 3px solid var(--uha-blue);">
-                ✅ Locked: <b>${div.name}</b> (${div.participants.length} entries)
+                ✅ Locked: <b>${div.name} (${div.mode})</b> - ${div.participants.length} entries
                 <button class="unlock-btn" onclick="unlockDivision(${index})">Unlock</button>
             </div>
         `;
@@ -261,61 +260,37 @@ document.getElementById('btn-start').addEventListener('click', () => {
     }
     if (lockedDivisions.length === 0) return; 
 
-    // Point 5: Initialize visual brackets
     lockedDivisions.forEach(division => {
-        matchesHtml += `<div class="section-title" style="margin-top: 30px;">${division.name} (${division.format === 'round_robin' ? 'Round Robin' : 'Knockout'})</div>`;
-
-        if (division.format === 'round_robin') {
-            // Safety: Ensure at least 1 group is created even for small rosters
-            const groupCount = Math.max(1, Math.ceil(division.participants.length / 4));
-            const groups = Array.from({ length: groupCount }, () => []);
-            
-            let forward = true;
-            let groupIndex = 0;
-            
-            division.participants.forEach((p) => {
-                groups[groupIndex].push(p);
-                if (forward) {
-                    groupIndex++;
-                    if (groupIndex >= groupCount) { groupIndex--; forward = false; }
-                } else {
-                    groupIndex--;
-                    if (groupIndex < 0) { groupIndex++; forward = true; }
-                }
-            });
-
-            groups.forEach((group, gIndex) => {
-                if (group.length === 0) return; // Safety check
-                
-                matchesHtml += `<div style="background:#333; padding:8px 12px; margin-top:15px; font-weight:bold; color:var(--uha-gold); border-radius:4px;">Group ${String.fromCharCode(65 + gIndex)}</div>`;
-                for (let i = 0; i < group.length; i++) {
-                    for (let j = i + 1; j < group.length; j++) {
-                        matchesHtml += createMatchCard(group[i].name, group[j].name);
-                    }
-                }
-            });
-
-        } else if (division.format === 'single_elim') {
+        if (division.format === 'single_elim' && division.bracket.length === 0) {
             let p = [...division.participants];
-            
-            // 1. Calculate next power of 2 for bracket size (e.g., 6 players -> next power is 8 -> requires 2 byes)
-            let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length)));
+            let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length || 1)));
+            if(nextPowerOf2 < 2) nextPowerOf2 = 2;
             let numByes = nextPowerOf2 - p.length;
-            
-            // 2. Award byes to the top seeds first
-            for (let i = 0; i < numByes; i++) {
-                if (p.length > 0) {
-                    let byePlayer = p.shift(); // Pulls the top seed
-                    matchesHtml += `<div style="padding:15px; color:var(--uha-blue); font-style: italic; border: 1px solid #333; margin-bottom: 10px; border-radius: 6px;">** ${byePlayer.name} receives a Bye to Round 2 **</div>`;
+
+            let round1 = [];
+            let totalMatches = nextPowerOf2 / 2;
+
+            for(let i=0; i < totalMatches; i++) {
+                if (i < numByes) {
+                    let p1 = p.shift();
+                    round1.push({ p1: p1, p2: null, p1Wins: 0, p2Wins: 0, scores: 'BYE', winner: 'p1' });
+                } else {
+                    let p1 = p.shift();
+                    let p2 = p.pop(); 
+                    round1.push({ p1: p1, p2: p2, p1Wins: 0, p2Wins: 0, scores: '', winner: null });
                 }
             }
-            
-            // 3. Match up the remaining players (Highest remaining vs Lowest remaining)
-            while (p.length > 1) {
-                let highSeed = p.shift();
-                let lowSeed = p.pop();
-                matchesHtml += createMatchCard(highSeed.name, lowSeed.name);
+            division.bracket = [round1];
+        } 
+        else if (division.format === 'round_robin' && division.bracket.length === 0) {
+            let p = [...division.participants];
+            let matches = [];
+            for(let i=0; i<p.length; i++) {
+                for(let j=i+1; j<p.length; j++) {
+                    matches.push({ p1: p[i], p2: p[j], p1Wins: 0, p2Wins: 0, scores: '', winner: null });
+                }
             }
+            division.bracket = [matches]; 
         }
     });
 
@@ -327,7 +302,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
 function renderTournamentView() {
     let html = '';
     lockedDivisions.forEach((div, divIdx) => {
-        html += `<div class="section-title" style="margin-top: 30px;">${div.name}</div>`;
+        html += `<div class="section-title" style="margin-top: 30px;">${div.name} (${div.mode} - ${div.format === 'single_elim' ? 'Knockout' : 'Round Robin'})</div>`;
         
         if (div.format === 'single_elim') {
             html += `<div class="bracket-wrapper">`;
@@ -336,30 +311,37 @@ function renderTournamentView() {
                 html += `<div style="text-align:center; color:var(--uha-gold); font-weight:bold;">Round ${rIdx + 1}</div>`;
                 
                 round.forEach((match, mIdx) => {
-                    const p1Class = match.winner === 'p1' ? 'text-win' : (match.winner === 'p2' ? 'text-lose' : '');
-                    const p2Class = match.winner === 'p2' ? 'text-win' : (match.winner === 'p1' ? 'text-lose' : '');
-                    
-                    html += `
-                    <div class="match-card">
-                        <div class="match-team ${p1Class}">${match.p1 ? match.p1.name : 'TBD'} <span>${match.scores ? match.p1Wins : ''}</span></div>
-                        <div class="match-vs">vs</div>
-                        <div class="match-team ${p2Class}">${match.p2 ? match.p2.name : (match.scores === 'BYE' ? '' : 'TBD')} <span>${match.scores ? match.p2Wins : ''}</span></div>
-                        ${match.scores ? `<div style="text-align:center; font-size:10px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
-                        ${!match.winner && match.p1 && match.p2 ? `<button class="uha-btn" style="margin-top:10px; font-size:11px; padding:6px;" onclick="enterScore(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>` : ''}
-                    </div>`;
+                    html += generateMatchCardHTML(match, divIdx, rIdx, mIdx);
                 });
                 html += `</div>`;
             });
             html += `</div>`;
-        } else {
-            // Placeholder for Round Robin view
-            html += `<div style="padding:20px; text-align:center; color:#888;">Round Robin View Active</div>`;
+        } else if (div.format === 'round_robin') {
+            html += `<div class="bracket-wrapper" style="flex-wrap: wrap;">`;
+            div.bracket[0].forEach((match, mIdx) => {
+                html += generateMatchCardHTML(match, divIdx, 0, mIdx);
+            });
+            html += `</div>`;
         }
     });
     document.getElementById('matchup-container').innerHTML = html;
 }
 
-// Point 7 & 6: Score Entry and Progression
+function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
+    const p1Class = match.winner === 'p1' ? 'text-win' : (match.winner === 'p2' ? 'text-lose' : '');
+    const p2Class = match.winner === 'p2' ? 'text-win' : (match.winner === 'p1' ? 'text-lose' : '');
+    
+    return `
+    <div class="match-card" style="min-width: 200px;">
+        <div class="match-team ${p1Class}">${match.p1 ? match.p1.name : 'TBD'} <span>${match.scores ? match.p1Wins : ''}</span></div>
+        <div class="match-vs">vs</div>
+        <div class="match-team ${p2Class}">${match.p2 ? match.p2.name : (match.scores === 'BYE' ? '' : 'TBD')} <span>${match.scores ? match.p2Wins : ''}</span></div>
+        ${match.scores ? `<div style="text-align:center; font-size:10px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
+        ${!match.winner && match.p1 && match.p2 ? `<button class="uha-btn" style="margin-top:10px; font-size:11px; padding:6px;" onclick="enterScore(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>` : ''}
+    </div>`;
+}
+
+// --- SCORING & PROGRESSION ---
 window.enterScore = function(divIdx, rIdx, mIdx) {
     const div = lockedDivisions[divIdx];
     const match = div.bracket[rIdx][mIdx];
@@ -394,6 +376,8 @@ window.enterScore = function(divIdx, rIdx, mIdx) {
 
 function progressBracket(divisionIndex, rIdx, mIdx) {
     let div = lockedDivisions[divisionIndex];
+    if (div.format !== 'single_elim') return; 
+
     let match = div.bracket[rIdx][mIdx];
     let winner = match.winner === 'p1' ? match.p1 : match.p2;
 
@@ -402,7 +386,7 @@ function progressBracket(divisionIndex, rIdx, mIdx) {
 
     if (!div.bracket[nextRIdx]) {
         let numMatches = Math.ceil(div.bracket[rIdx].length / 2);
-        if (numMatches === 0 || (numMatches === 1 && div.bracket[rIdx].length === 1)) return; // Done
+        if (numMatches === 0 || (numMatches === 1 && div.bracket[rIdx].length === 1)) return; 
         div.bracket[nextRIdx] = Array.from({length: numMatches}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null}));
     }
 
