@@ -254,6 +254,23 @@ window.unlockDivision = function(index) {
 };
 
 // --- TOURNAMENT PREVIEW & BRACKET PROGRESSION LOGIC ---
+
+// Helper: Generates standard bracket seeding (e.g., [1, 8, 4, 5, 2, 7, 3, 6])
+function getSeedingStructure(powerOf2) {
+    let rounds = Math.log2(powerOf2);
+    let structure = [1];
+    for (let i = 0; i < rounds; i++) {
+        let nextStructure = [];
+        let sum = Math.pow(2, i + 1) + 1;
+        structure.forEach(seed => {
+            nextStructure.push(seed);
+            nextStructure.push(sum - seed);
+        });
+        structure = nextStructure;
+    }
+    return structure;
+}
+
 document.getElementById('btn-start').addEventListener('click', () => {
     if (lockedDivisions.length === 0) {
         document.getElementById('btn-lock-division').click();
@@ -265,22 +282,35 @@ document.getElementById('btn-start').addEventListener('click', () => {
             let p = [...division.participants];
             let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length || 1)));
             if(nextPowerOf2 < 2) nextPowerOf2 = 2;
-            let numByes = nextPowerOf2 - p.length;
 
-            let round1 = [];
-            let totalMatches = nextPowerOf2 / 2;
+            let seeding = getSeedingStructure(nextPowerOf2);
+            let roundsCount = Math.log2(nextPowerOf2);
+            let bracket = [];
 
-            for(let i=0; i < totalMatches; i++) {
-                if (i < numByes) {
-                    let p1 = p.shift();
-                    round1.push({ p1: p1, p2: null, p1Wins: 0, p2Wins: 0, scores: 'BYE', winner: 'p1' });
-                } else {
-                    let p1 = p.shift();
-                    let p2 = p.pop(); 
-                    round1.push({ p1: p1, p2: p2, p1Wins: 0, p2Wins: 0, scores: '', winner: null });
-                }
+            // Initialize all empty rounds
+            for(let r=0; r<roundsCount; r++) {
+                let matchesInRound = nextPowerOf2 / Math.pow(2, r+1);
+                bracket.push(Array.from({length: matchesInRound}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null})));
             }
-            division.bracket = [round1];
+
+            // Populate Round 1 & Auto-Advance Byes
+            for(let i=0; i<seeding.length; i+=2) {
+                let mIdx = i/2;
+                let p1 = p[seeding[i]-1] || null;
+                let p2 = p[seeding[i+1]-1] || null;
+
+                bracket[0][mIdx].p1 = p1;
+                bracket[0][mIdx].p2 = p2;
+
+                if (p1 && !p2) {
+                    bracket[0][mIdx].scores = 'BYE';
+                    bracket[0][mIdx].winner = 'p1';
+                    let nextMIdx = Math.floor(mIdx / 2);
+                    if (mIdx % 2 === 0) bracket[1][nextMIdx].p1 = p1;
+                    else bracket[1][nextMIdx].p2 = p1;
+                } 
+            }
+            division.bracket = bracket;
         } 
         else if (division.format === 'round_robin' && division.bracket.length === 0) {
             let p = [...division.participants];
@@ -299,25 +329,92 @@ document.getElementById('btn-start').addEventListener('click', () => {
     document.getElementById('tournament-view').style.display = 'block';
 });
 
+// --- STANDINGS CALCULATION (2-1-0 Logic & Tiebreakers) ---
+function calculateStandings(players, matches) {
+    let stats = {};
+    players.forEach(p => {
+        stats[p.name] = { player: p, matchWins: 0, matchLosses: 0, pts: 0, gamesWon: 0, totalScore: 0, h2hWins: [] };
+    });
+
+    matches.forEach(m => {
+        if (m.winner) {
+            let w = m.winner === 'p1' ? m.p1 : m.p2;
+            let l = m.winner === 'p1' ? m.p2 : m.p1;
+
+            stats[w.name].matchWins++;
+            stats[w.name].pts += 2; // 2 Points for Match Win
+            stats[l.name].matchLosses++;
+
+            stats[m.p1.name].gamesWon += m.p1Wins;
+            stats[m.p2.name].gamesWon += m.p2Wins;
+
+            let games = m.scores.split(',');
+            games.forEach(g => {
+                let s = g.trim().split('-');
+                if(s.length===2) {
+                    stats[m.p1.name].totalScore += parseInt(s[0]);
+                    stats[m.p2.name].totalScore += parseInt(s[1]);
+                }
+            });
+
+            stats[w.name].h2hWins.push(l.name);
+        }
+    });
+
+    return Object.values(stats).sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts; // 1. Points
+        if (a.h2hWins.includes(b.player.name)) return -1; // 2. Head-to-Head
+        if (b.h2hWins.includes(a.player.name)) return 1;
+        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon; // 3. Games Won
+        return b.totalScore - a.totalScore; // 4. Total Points Scored
+    });
+}
+
 function renderTournamentView() {
     let html = '';
     lockedDivisions.forEach((div, divIdx) => {
-        html += `<div class="section-title" style="margin-top: 30px;">${div.name} (${div.mode} - ${div.format === 'single_elim' ? 'Knockout' : 'Round Robin'})</div>`;
+        html += `<div class="section-title" style="margin-top: 40px; border-top: 1px solid #444; padding-top:20px;">${div.name} (${div.mode} - ${div.format === 'single_elim' ? 'Knockout' : 'Round Robin'})</div>`;
         
         if (div.format === 'single_elim') {
-            html += `<div class="bracket-wrapper">`;
+            html += `<div class="bracket-layout">`;
+            
+            // Render Headers in a single row
+            html += `<div class="bracket-headers">`;
+            div.bracket.forEach((round, rIdx) => {
+                html += `<div class="bracket-header">Round ${rIdx + 1}</div>`;
+            });
+            html += `</div>`;
+
+            // Render Match Columns perfectly centered
+            html += `<div class="bracket-columns">`;
             div.bracket.forEach((round, rIdx) => {
                 html += `<div class="bracket-round">`;
-                html += `<div style="text-align:center; color:var(--uha-gold); font-weight:bold;">Round ${rIdx + 1}</div>`;
-                
                 round.forEach((match, mIdx) => {
                     html += generateMatchCardHTML(match, divIdx, rIdx, mIdx);
                 });
                 html += `</div>`;
             });
-            html += `</div>`;
+            html += `</div></div>`;
+
         } else if (div.format === 'round_robin') {
-            html += `<div class="bracket-wrapper" style="flex-wrap: wrap;">`;
+            let standings = calculateStandings(div.participants, div.bracket[0]);
+            
+            html += `<table class="standings-table">
+                <tr><th>Rk</th><th>Player / Team</th><th>Pts</th><th>W-L</th><th>Games Won</th><th>Total Score</th></tr>`;
+            standings.forEach((s, i) => {
+                html += `<tr>
+                    <td style="color:var(--uha-gold); font-weight:bold;">${i+1}</td>
+                    <td style="text-align:left; font-weight:bold;">${s.player.name}</td>
+                    <td style="color:var(--uha-blue); font-weight:bold;">${s.pts}</td>
+                    <td>${s.matchWins}-${s.matchLosses}</td>
+                    <td>${s.gamesWon}</td>
+                    <td>${s.totalScore}</td>
+                </tr>`;
+            });
+            html += `</table>`;
+            html += `<button class="uha-btn uha-btn-gold" style="margin-bottom:20px;" onclick="advanceToKnockout(${divIdx})">Generate Knockout from Standings</button>`;
+
+            html += `<div class="bracket-columns" style="flex-wrap: wrap;">`;
             div.bracket[0].forEach((match, mIdx) => {
                 html += generateMatchCardHTML(match, divIdx, 0, mIdx);
             });
@@ -327,17 +424,34 @@ function renderTournamentView() {
     document.getElementById('matchup-container').innerHTML = html;
 }
 
+window.advanceToKnockout = function(divIdx) {
+    let oldDiv = lockedDivisions[divIdx];
+    let stats = calculateStandings(oldDiv.participants, oldDiv.bracket[0]);
+    
+    // Create new division seeded perfectly by standings
+    lockedDivisions.push({
+        name: oldDiv.name + " (Championship Knockout)",
+        format: "single_elim",
+        mode: oldDiv.mode,
+        participants: stats.map(s => s.player),
+        bracket: []
+    });
+
+    document.getElementById('btn-start').click(); // Refresh with new bracket
+};
+
 function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
     const p1Class = match.winner === 'p1' ? 'text-win' : (match.winner === 'p2' ? 'text-lose' : '');
     const p2Class = match.winner === 'p2' ? 'text-win' : (match.winner === 'p1' ? 'text-lose' : '');
+    const isBye = match.scores === 'BYE';
     
     return `
-    <div class="match-card" style="min-width: 200px;">
-        <div class="match-team ${p1Class}">${match.p1 ? match.p1.name : 'TBD'} <span>${match.scores ? match.p1Wins : ''}</span></div>
+    <div class="match-card" style="min-width: 200px; ${isBye ? 'opacity: 0.6; border-color: #555;' : ''}">
+        <div class="match-team ${p1Class}">${match.p1 ? match.p1.name : 'TBD'} <span>${match.scores && !isBye ? match.p1Wins : ''}</span></div>
         <div class="match-vs">vs</div>
-        <div class="match-team ${p2Class}">${match.p2 ? match.p2.name : (match.scores === 'BYE' ? '' : 'TBD')} <span>${match.scores ? match.p2Wins : ''}</span></div>
-        ${match.scores ? `<div style="text-align:center; font-size:10px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
-        ${!match.winner && match.p1 && match.p2 ? `<button class="uha-btn" style="margin-top:10px; font-size:11px; padding:6px;" onclick="enterScore(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>` : ''}
+        <div class="match-team ${p2Class}">${match.p2 ? match.p2.name : (isBye ? '<span style="color:var(--uha-gold); font-style:italic;">** BYE **</span>' : 'TBD')} <span>${match.scores && !isBye ? match.p2Wins : ''}</span></div>
+        ${match.scores && !isBye ? `<div style="text-align:center; font-size:10px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
+        ${!match.winner && match.p1 && match.p2 && !isBye ? `<button class="uha-btn" style="margin-top:10px; font-size:11px; padding:6px;" onclick="enterScore(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>` : ''}
     </div>`;
 }
 
@@ -384,15 +498,11 @@ function progressBracket(divisionIndex, rIdx, mIdx) {
     let nextRIdx = rIdx + 1;
     let nextMIdx = Math.floor(mIdx / 2);
 
-    if (!div.bracket[nextRIdx]) {
-        let numMatches = Math.ceil(div.bracket[rIdx].length / 2);
-        if (numMatches === 0 || (numMatches === 1 && div.bracket[rIdx].length === 1)) return; 
-        div.bracket[nextRIdx] = Array.from({length: numMatches}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null}));
+    // Push the winner to the next bracket slot
+    if (div.bracket[nextRIdx]) {
+        if (mIdx % 2 === 0) div.bracket[nextRIdx][nextMIdx].p1 = winner;
+        else div.bracket[nextRIdx][nextMIdx].p2 = winner;
     }
-
-    if (mIdx % 2 === 0) div.bracket[nextRIdx][nextMIdx].p1 = winner;
-    else div.bracket[nextRIdx][nextMIdx].p2 = winner;
 }
-
 // Initialize
 refreshRosterFromDB();
