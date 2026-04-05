@@ -285,6 +285,45 @@ window.unlockDivision = function(index) {
 
 // --- TOURNAMENT PREVIEW & BRACKET PROGRESSION LOGIC ---
 
+// Add this helper function to handle proper tournament seeding
+function buildSeededMatchups(teams) {
+    let numTeams = teams.length;
+    // Find the next power of 2 (2, 4, 8, 16, 32...)
+    let bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
+    let byes = bracketSize - numTeams;
+
+    let paddedTeams = [...teams];
+    for(let i=0; i<byes; i++) {
+        paddedTeams.push({ name: "BYE", isBye: true });
+    }
+
+    // Standard Seeding Array generation (e.g., for 4: 0, 3, 1, 2 -> 1v4, 2v3)
+    let seeds = [0];
+    for (let i = 1; i < Math.log2(bracketSize) + 1; i++) {
+        let nextLevel = [];
+        let sum = Math.pow(2, i) - 1;
+        for (let j = 0; j < seeds.length; j++) {
+            nextLevel.push(seeds[j]);
+            nextLevel.push(sum - seeds[j]);
+        }
+        seeds = nextLevel;
+    }
+
+    let matchups = [];
+    for (let i = 0; i < seeds.length; i += 2) {
+        let p1 = paddedTeams[seeds[i]];
+        let p2 = paddedTeams[seeds[i+1]];
+        matchups.push({
+            p1: p1.isBye ? null : p1,
+            p2: p2.isBye ? null : p2,
+            scores: (p1.isBye || p2.isBye) ? 'BYE' : '',
+            p1Wins: 0, p2Wins: 0,
+            winner: p1.isBye ? 'p2' : (p2.isBye ? 'p1' : null)
+        });
+    }
+    return matchups;
+}
+
 // Helper: Generates standard bracket seeding (e.g., [1, 8, 4, 5, 2, 7, 3, 6])
 function getSeedingStructure(powerOf2) {
     let rounds = Math.log2(powerOf2);
