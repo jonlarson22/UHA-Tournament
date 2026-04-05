@@ -471,7 +471,7 @@ window.advanceToKnockout = function(divIdx) {
                     html += generateMatchCardHTML(match, divIdx, rIdx, mIdx);
                 });
                 html += `</div></div>`; // Close both divs
-        } else if (div.format === 'round_robin') {
+        } else if (div.format === 'round_robin')
             // ... (Keep your existing round_robin logic exactly the same here) ...
         }
     });
