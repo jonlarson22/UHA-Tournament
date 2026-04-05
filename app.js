@@ -217,7 +217,7 @@ document.getElementById('btn-add-wildcard').addEventListener('click', () => {
     const fakePlayerItem = document.createElement('div');
     fakePlayerItem.className = 'player-item';
     fakePlayerItem.dataset.id = 'wildcard_' + Date.now();
-    fakePlayerItem.dataset.name = nameStr + " (WC)";
+    fakePlayerItem.dataset.name = nameStr;
     fakePlayerItem.dataset.elo = eloVal || 1000;
 
     playerListDiv.appendChild(fakePlayerItem);
@@ -463,15 +463,14 @@ window.advanceToKnockout = function(divIdx) {
         if (div.format === 'single_elim') {
             html += `<div class="bracket-layout"><div class="bracket-columns">`;
             div.bracket.forEach((round, rIdx) => {
-                html += `<div class="bracket-round">`;
-                // HEADER IS NOW INSIDE THE COLUMN FOR PERFECT CENTERING
+               html += `<div class="bracket-round">`;
                 html += `<div class="bracket-header" style="margin-bottom: 20px;">Round ${rIdx + 1}</div>`; 
+                // Wrap the matches in this new div:
+                html += `<div class="bracket-matches">`; 
                 round.forEach((match, mIdx) => {
                     html += generateMatchCardHTML(match, divIdx, rIdx, mIdx);
                 });
-                html += `</div>`;
-            });
-            html += `</div></div>`;
+                html += `</div></div>`; // Close both divs
         } else if (div.format === 'round_robin') {
             // ... (Keep your existing round_robin logic exactly the same here) ...
         }
