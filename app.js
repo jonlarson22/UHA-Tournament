@@ -12,34 +12,79 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- FIREBASE AUTHENTICATION ---
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        // User is signed in, show Admin Dashboard
-        isAdmin = true;
-        document.getElementById('admin-dashboard').style.display = 'block';
-        document.getElementById('public-viewer').style.display = 'none';
-        // TODO: Load active tournaments from DB
-    } else {
-        // No user, default to Public View
-        isAdmin = false;
-        document.getElementById('admin-dashboard').style.display = 'none';
-        document.getElementById('public-viewer').style.display = 'block';
-        // TODO: Load read-only view from DB
+// --- FIREBASE AUTHENTICATION & LIVE DATA ---
+
+// 1. The Hidden Admin Trigger
+document.getElementById('header-title').addEventListener('click', () => {
+    if (!isAdmin) {
+        document.getElementById('login-modal').style.display = 'flex';
     }
-    updateVisibility();
 });
 
+// 2. Auth State Listener
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        // --- ADMIN MODE ---
+        isAdmin = true;
+        document.getElementById('btn-logout').style.display = 'block';
+        document.getElementById('admin-dashboard').style.display = 'block';
+        document.getElementById('public-viewer').style.display = 'none';
+        document.getElementById('tournament-view').style.display = 'none'; 
+        
+        // Un-hide the Reset button for admins
+        const resetBtn = document.getElementById('btn-reset');
+        if(resetBtn) resetBtn.style.display = 'block';
+        
+    } else {
+        // --- PUBLIC MODE ---
+        isAdmin = false;
+        document.getElementById('btn-logout').style.display = 'none';
+        document.getElementById('admin-dashboard').style.display = 'none';
+        document.getElementById('public-viewer').style.display = 'none'; 
+        
+        // Jump straight to the brackets and hide the reset button
+        document.getElementById('tournament-view').style.display = 'block';
+        const resetBtn = document.getElementById('btn-reset');
+        if(resetBtn) resetBtn.style.display = 'none';
+        
+        loadLiveTournamentData();
+    }
+});
+
+// 3. Login / Logout Functions
 window.loginAdmin = function() {
     const email = document.getElementById('admin-email').value;
     const pwd = document.getElementById('admin-pwd').value;
     firebase.auth().signInWithEmailAndPassword(email, pwd)
         .then(() => {
             document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-pwd').value = '';
         })
         .catch((error) => alert("Login Failed: " + error.message));
 };
 
+window.logoutAdmin = function() {
+    firebase.auth().signOut().then(() => {
+        // Reloads the page to clear local memory and return to public view
+        window.location.reload(); 
+    });
+};
+
+// 4. Fetch Public Data
+function loadLiveTournamentData() {
+    // This uses .on() so the public brackets update LIVE when you enter a score
+    db.ref('tournaments/active').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.divisions) {
+            lockedDivisions = data.divisions;
+            renderTournamentView();
+        } else {
+            document.getElementById('matchup-container').innerHTML = 
+                '<div style="text-align:center; padding: 50px; color: #888; font-size: 18px;">No active tournament at this time.</div>';
+        }
+    });
+}
 // --- STATE MANAGEMENT ---
 let allPlayers = []; 
 let isDoublesMode = false;
@@ -480,18 +525,27 @@ window.advanceToKnockout = function(divIdx) {
 }
 
 function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
-    // Safely check for player names, defaulting to "BYE" if null
     let teamA = match.p1 ? match.p1.name : "BYE";
     let teamB = match.p2 ? match.p2.name : "BYE";
     
-    // Safely format scores if they exist
-    let scoreA = match.scores && match.scores !== 'BYE' ? `[${match.p1Wins}]` : '';
-    let scoreB = match.scores && match.scores !== 'BYE' ? `[${match.p2Wins}]` : '';
+    let hasScore = match.scores && match.scores !== 'BYE';
+    let scoreA = hasScore ? `[${match.p1Wins}]` : '';
+    let scoreB = hasScore ? `[${match.p2Wins}]` : '';
 
-    // If it's a BYE, we don't need a score button
-    let actionArea = (teamA === "BYE" || teamB === "BYE") 
-        ? `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:8px;">Auto-Advance</div>`
-        : `<button class="uha-btn" style="width:auto; padding:8px 15px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>`;
+    // Player Submission vs Admin Edit Logic
+    let actionArea = '';
+    if (teamA === "BYE" || teamB === "BYE") {
+        actionArea = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:8px;">Auto-Advance</div>`;
+    } else if (!hasScore) {
+        // Public can enter the initial score
+        actionArea = `<button class="uha-btn" style="width:auto; padding:8px 15px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx})">Enter Score</button>`;
+    } else if (hasScore && isAdmin) {
+        // Only Admins can edit an existing score
+        actionArea = `<button class="uha-btn uha-btn-outline" style="width:auto; padding:8px 15px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx})">Edit Score</button>`;
+    } else {
+        // Public sees the match is locked
+        actionArea = `<div style="color:var(--uha-gold); font-size:12px; text-align:center; padding:8px; font-weight:bold;">Match Complete</div>`;
+    }
 
     return `
         <div class="match-card">
@@ -499,6 +553,7 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
                 <div class="team-a" style="font-weight:bold;">${teamA} <span class="score-a" style="color:var(--uha-blue); margin-left:10px;">${scoreA}</span></div>
                 <div class="match-vs">vs</div>
                 <div class="team-b" style="font-weight:bold;">${teamB} <span class="score-b" style="color:var(--uha-blue); margin-left:10px;">${scoreB}</span></div>
+                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
             </div>
             ${actionArea}
         </div>
@@ -584,6 +639,12 @@ window.saveScore = function() {
     progressBracket(divIdx, rIdx, mIdx);
     renderTournamentView();
     closeScoreModal();
+
+    // ADD THIS: Instantly sync the new score and bracket progression to Firebase
+    db.ref('tournaments/active').set({
+        updatedAt: firebase.database.ServerValue.TIMESTAMP,
+        divisions: lockedDivisions
+    }).catch(e => console.error("Firebase auto-save failed:", e));
 };
 
 function wipeForwardBracket(divIdx, rIdx, mIdx) {
