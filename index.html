@@ -9,10 +9,13 @@
 
 <div class="uha-container">
     <header class="uha-header">
-        <h1>UHA Tournament Dashboard</h1>
-        <div id="connection-status">Connecting to Firebase...</div>
+        <h1 id="header-title" style="cursor: pointer;" title="Admin Access">UHA Tournament Dashboard</h1>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div id="connection-status">Connecting to Firebase...</div>
+            <button id="btn-logout" class="uha-btn-outline" style="display:none; padding: 5px 10px; font-size: 12px;" onclick="logoutAdmin()">Logout</button>
+        </div>
     </header>
-
+    
     <section id="public-viewer" style="display:none;" class="column">
         <div class="section-title">Live Tournament Brackets</div>
         <select id="public-tournament-selector">
