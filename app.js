@@ -391,6 +391,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
         document.getElementById('tourney-title').innerText = tName; 
         renderTournamentView();
     }).catch((e) => alert("Error: " + e.message));
+});
 
 // --- STANDINGS CALCULATION (2-1-0 Logic & Tiebreakers) ---
 function calculateStandings(players, matches) {
