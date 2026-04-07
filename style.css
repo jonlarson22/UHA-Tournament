@@ -325,3 +325,27 @@ input[type="text"], input[type="number"], select {
     padding: 8px; text-align: center; font-size: 16px; border-radius: 4px;
 }
 .score-input:focus { border-color: var(--uha-blue); outline: none; }
+
+/* --- MODAL POPUP STYLES --- */
+.uha-modal {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85); /* Dark overlay */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    /* Note: display is handled by the JavaScript (flex/none) */
+}
+
+.uha-modal-content {
+    background: #1a1a1a;
+    padding: 25px;
+    border-radius: 6px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid #444;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+}
