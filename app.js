@@ -307,7 +307,7 @@ window.unlockDivision = function(index) {
         slot.dataset.finalElo = p.elo;
         
         // Rebuild the hidden ID divs
-        let idHtml = p.ids.map(id => `<div class="drafted-id" data-id="${id}" style="display:none;"></div>`).join('');
+        let idHtml = (p.ids || []).map(id => `<div class="drafted-id" data-id="${id}" style="display:none;"></div>`).join('');
 
         slot.innerHTML = `
             <div style="font-weight: bold;">
@@ -669,12 +669,13 @@ window.saveScore = function() {
         }
     }
 
-    const pendingMatch = {
+   const pendingMatch = {
         id: Date.now(),
         mode: div.mode.toLowerCase(), 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        winners: winningTeam.ids,
-        losers: losingTeam.ids,
+        // Fallback to prevent Firebase 'undefined' errors on legacy divisions
+        winners: winningTeam.ids || ["missing_id"],
+        losers: losingTeam.ids || ["missing_id"],
         detailedGames: detailedGames
     };
 
