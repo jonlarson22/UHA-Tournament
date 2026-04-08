@@ -357,3 +357,9 @@ input[type="text"], input[type="number"], select {
     border-color: var(--uha-blue); 
     outline: none; 
 }
+
+#btn-back-setup {
+    padding: 6px 12px; /* Reduces the bulk of the button */
+    font-size: 0.85em; /* Scales down the text slightly */
+    width: auto; /* Ensures it only takes up as much space as the text needs */
+}
