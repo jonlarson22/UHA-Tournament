@@ -25,6 +25,11 @@
     </section>
 
     <section id="admin-dashboard">
+
+        <button class="uha-btn" onclick="goToBracketView()" style="margin-bottom: 20px; background-color: var(--uha-gold); color: black;">
+            👀 View Live Bracket / Enter Scores
+        </button>
+        
         <div class="setup-columns">
             
             <div class="column">
@@ -88,13 +93,20 @@
     </section>
 
     <section id="tournament-view" style="display:none;" class="column">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
-            <div class="section-title" id="tourney-title" style="margin-bottom: 0; border: none; padding-bottom: 0;">Live Tournament</div>
-            
-            <select id="public-tournament-selector" class="uha-input" style="width: auto; min-width: 220px; margin-bottom: 0;">
-                <option value="active">Current Live Tournament</option>
-            </select>
-        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #2a2a2a; padding: 15px; border-radius: 8px;">
+    
+    <div>
+        <label for="public-tournament-selector" style="margin-right: 10px; font-weight: bold; color: var(--uha-blue);">View Event:</label>
+        <select id="public-tournament-selector" class="uha-input" style="width: auto; min-width: 250px;">
+            <option value="active">Current Live Tournament</option>
+        </select>
+    </div>
+
+    <button id="btn-back-setup" class="uha-btn-outline" onclick="goToSetupView()" style="display: none; border-color: var(--uha-blue); color: var(--uha-blue);">
+        ⚙️ Back to Admin Setup
+    </button>
+
+</div>
         
         <div id="matchup-container"></div>
         
