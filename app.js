@@ -65,13 +65,16 @@ window.logoutAdmin = function() {
 function updateVisibility() {
     const archiveBtn = document.getElementById('btn-archive');
     const resetBtn = document.getElementById('btn-reset');
+    const backSetupBtn = document.getElementById('btn-back-setup'); // ADD THIS
     
     if (isAdmin) {
         if(archiveBtn) archiveBtn.style.display = 'block';
         if(resetBtn) resetBtn.style.display = 'block'; 
+        // We handle backSetupBtn display inside the goToBracketView function
     } else {
         if(archiveBtn) archiveBtn.style.display = 'none';
         if(resetBtn) resetBtn.style.display = 'none'; 
+        if(backSetupBtn) backSetupBtn.style.display = 'none'; // ADD THIS
     }
 }
 
@@ -296,6 +299,27 @@ window.unlockDivision = function(index) {
         teamDraftArea.appendChild(slot);
     });
     renderLockedDivisions();
+};
+
+// --- VIEW NAVIGATION LOGIC ---
+window.goToBracketView = function() {
+    // Hide the setup dashboard
+    document.getElementById('admin-dashboard').style.display = 'none';
+    
+    // Show the tournament bracket
+    document.getElementById('tournament-view').style.display = 'block';
+    
+    // Make sure the "Back to Setup" button is visible since we are an admin
+    const backBtn = document.getElementById('btn-back-setup');
+    if (backBtn) backBtn.style.display = 'block';
+};
+
+window.goToSetupView = function() {
+    // Hide the tournament bracket
+    document.getElementById('tournament-view').style.display = 'none';
+    
+    // Show the setup dashboard
+    document.getElementById('admin-dashboard').style.display = 'block';
 };
 
 // --- TOURNAMENT PREVIEW & BRACKET PROGRESSION LOGIC ---
