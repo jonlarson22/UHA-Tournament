@@ -1,4 +1,3 @@
-// --- FIREBASE CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyCCV_WHA1Q7WKawfG68Y9z40xINVg5zbmw",
     authDomain: "utah-handball.firebaseapp.com",
@@ -12,14 +11,12 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// --- STATE MANAGEMENT ---
 let allPlayers = []; 
 let isDoublesMode = false;
 let isAdmin = false;
 let lockedDivisions = [];
 let isViewingArchive = false;
 
-// --- FIREBASE AUTHENTICATION & LIVE DATA ---
 document.getElementById('header-title').addEventListener('click', () => {
     if (!isAdmin) {
         document.getElementById('login-modal').style.display = 'flex';
@@ -70,25 +67,22 @@ window.logoutAdmin = function() {
 function updateVisibility() {
     const archiveBtn = document.getElementById('btn-archive');
     const resetBtn = document.getElementById('btn-reset');
-    const backSetupBtn = document.getElementById('btn-back-setup'); // ADD THIS
+    const backSetupBtn = document.getElementById('btn-back-setup');
     
     if (isAdmin) {
         if(archiveBtn) archiveBtn.style.display = 'block';
         if(resetBtn) resetBtn.style.display = 'block'; 
-        // We handle backSetupBtn display inside the goToBracketView function
     } else {
         if(archiveBtn) archiveBtn.style.display = 'none';
         if(resetBtn) resetBtn.style.display = 'none'; 
-        if(backSetupBtn) backSetupBtn.style.display = 'none'; // ADD THIS
+        if(backSetupBtn) backSetupBtn.style.display = 'none';
     }
 }
 
-// --- DOM ELEMENTS ---
 const teamDraftArea = document.getElementById('team-draft-area');
 const playerListDiv = document.getElementById('player-list');
 const searchInput = document.getElementById('player-search');
 
-// --- TOGGLES ---
 document.getElementById('btn-mode-singles').addEventListener('click', (e) => {
     isDoublesMode = false;
     e.target.classList.add('active');
@@ -107,7 +101,6 @@ document.getElementById('btn-mode-doubles').addEventListener('click', (e) => {
     renderRoster();
 });
 
-// --- ROSTER LOGIC ---
 function refreshRosterFromDB() {
     db.ref('players').once('value', (snapshot) => {
         const data = snapshot.val();
@@ -161,7 +154,6 @@ function renderRoster() {
     });
 }
 
-// --- DRAFT LOGIC ---
 playerListDiv.addEventListener('click', (e) => {
     const playerItem = e.target.closest('.player-item');
     if (!playerItem) return;
@@ -235,7 +227,6 @@ function updateTeamElo(teamDiv) {
     teamDiv.dataset.finalElo = avgElo;
 }
 
-// --- WILDCARD LOGIC ---
 document.getElementById('btn-add-wildcard').addEventListener('click', () => {
     const nameStr = document.getElementById('wildcard-name').value;
     const eloVal = document.getElementById('wildcard-elo').value;
@@ -253,7 +244,6 @@ document.getElementById('btn-add-wildcard').addEventListener('click', () => {
     document.getElementById('wildcard-name').value = '';
 });
 
-// --- LOCKING LOGIC ---
 document.getElementById('btn-lock-division').addEventListener('click', () => {
     const nameInput = document.getElementById('division-name');
     const divName = nameInput ? nameInput.value : "Untitled Division";
@@ -266,7 +256,6 @@ document.getElementById('btn-lock-division').addEventListener('click', () => {
         const idElements = el.querySelectorAll('.drafted-id');
         const ids = Array.from(idElements).map(idEl => {
             const rawId = idEl.dataset.id;
-            // Keep wildcards as strings, convert standard IDs to numbers
             return rawId.startsWith('wildcard') ? rawId : Number(rawId);
         });
 
@@ -314,8 +303,7 @@ window.unlockDivision = function(index) {
         slot.className = divToUnlock.mode === "Singles" ? 'singles-slot' : 'team-slot';
         slot.dataset.finalName = p.name;
         slot.dataset.finalElo = p.elo;
-        
-        // Rebuild the hidden ID divs
+
         let idHtml = (p.ids || []).map(id => `<div class="drafted-id" data-id="${id}" style="display:none;"></div>`).join('');
 
         slot.innerHTML = `
@@ -330,28 +318,19 @@ window.unlockDivision = function(index) {
     renderLockedDivisions();
 };
 
-// --- VIEW NAVIGATION LOGIC ---
 window.goToBracketView = function() {
-    // Hide the setup dashboard
     document.getElementById('admin-dashboard').style.display = 'none';
-    
-    // Show the tournament bracket
     document.getElementById('tournament-view').style.display = 'block';
-    
-    // Make sure the "Back to Setup" button is visible since we are an admin
+
     const backBtn = document.getElementById('btn-back-setup');
     if (backBtn) backBtn.style.display = 'block';
 };
 
 window.goToSetupView = function() {
-    // Hide the tournament bracket
     document.getElementById('tournament-view').style.display = 'none';
-    
-    // Show the setup dashboard
     document.getElementById('admin-dashboard').style.display = 'block';
 };
 
-// --- TOURNAMENT PREVIEW & BRACKET PROGRESSION LOGIC ---
 function buildSeededMatchups(teams) {
     let numTeams = teams.length;
     let bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams || 1)));
@@ -431,23 +410,21 @@ document.getElementById('btn-start').addEventListener('click', () => {
             division.bracket = [matches]; 
         }
     });
-// Grab the name from the new input field
+
     const tName = document.getElementById('tournament-name').value || "Untitled Tournament";
 
     db.ref('tournaments/active').set({
-        name: tName, // <-- ADD THIS LINE
+        name: tName,
         updatedAt: firebase.database.ServerValue.TIMESTAMP,
         divisions: lockedDivisions
     }).then(() => {
         document.getElementById('admin-dashboard').style.display = 'none';
         document.getElementById('tournament-view').style.display = 'block';
-        // Set the title on the screen immediately
         document.getElementById('tourney-title').innerText = tName; 
         renderTournamentView();
     }).catch((e) => alert("Error: " + e.message));
 });
 
-// --- STANDINGS CALCULATION (2-1-0 Logic & Tiebreakers) ---
 function calculateStandings(players, matches) {
     let stats = {};
     players.forEach(p => {
@@ -586,7 +563,6 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
     `;
 }
 
-// --- BEST OF 3 MODAL LOGIC ---
 let currentScoreContext = null;
 
 window.openScoreModal = function(divIdx, rIdx, mIdx) {
@@ -661,16 +637,6 @@ window.saveScore = function() {
     match.p2Wins = p2Wins;
     match.winner = p1Wins > p2Wins ? 'p1' : 'p2';
 
-    // --- BUILD PENDING MATCH FOR ELO ENGINE ---
-    const getIdsFromNames = (teamNameStr) => {
-        const names = teamNameStr.split(' & '); 
-        return names.map(name => {
-            const trimmedName = name.trim();
-            const foundPlayer = allPlayers.find(p => p.name === trimmedName);
-            return foundPlayer ? foundPlayer.id : `wildcard_${Date.now()}`;
-        });
-    };
-
     const winningTeam = match.winner === 'p1' ? match.p1 : match.p2;
     const losingTeam = match.winner === 'p1' ? match.p2 : match.p1;
 
@@ -690,15 +656,17 @@ window.saveScore = function() {
         id: Date.now(),
         mode: div.mode.toLowerCase(), 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        winners: getIdsFromNames(winningTeam.name),
+        winners: winningTeam.ids || [],
         winnerNames: winningTeam.name,
-        losers: getIdsFromNames(losingTeam.name),
+        losers: losingTeam.ids || [],
         loserNames: losingTeam.name,
         detailedGames: detailedGames
     };
 
-    db.ref('pendingMatches').push(pendingMatch);
-    
+    db.ref('pendingMatches').push(pendingMatch)
+        .then(() => console.log("Match successfully added to pendingMatches queue."))
+        .catch(e => console.error("Firebase Rules blocked pendingMatches write:", e));
+
     progressBracket(divIdx, rIdx, mIdx);
     renderTournamentView();
     closeScoreModal();
@@ -748,16 +716,13 @@ function progressBracket(divIdx, rIdx, mIdx) {
 window.archiveTournament = function() {
     if (!isAdmin) return;
     
-    // 1. Fetch the active tournament data first
     db.ref('tournaments/active').once('value').then((snapshot) => {
         const data = snapshot.val();
         if (!data) return alert("No active tournament found to archive.");
 
-        // 2. Identify it and Ask for Confirmation
         const tName = data.name || "Untitled Tournament";
         if (!confirm(`Are you sure you want to archive "${tName}"?\n\nIt will be moved to history and become read-only. This will clear the dashboard for a new event.`)) return;
 
-        // 3. Move it and delete the active node
         const archiveID = "tourney_" + Date.now();
         return db.ref('tournaments/archived/' + archiveID).set(data).then(() => {
             return db.ref('tournaments/active').remove();
@@ -768,16 +733,13 @@ window.archiveTournament = function() {
     }).catch(e => console.error("Archive failed:", e));
 };
 
-// --- ARCHIVE VIEWER LOGIC ---
 function loadArchiveList() {
     const selector = document.getElementById('public-tournament-selector');
     if (!selector) return;
 
-    // Use .on to keep the list updated in real-time
     db.ref('tournaments/archived').on('value', (snapshot) => {
         const archives = snapshot.val();
-        
-        // Reset to default option
+
         selector.innerHTML = '<option value="active">Current Live Tournament</option>';
         
         if (!archives) return;
@@ -800,7 +762,6 @@ function loadTournamentData(path) {
         const data = snapshot.val();
         if (data && data.divisions) {
             lockedDivisions = data.divisions;
-            // Update the big header title on the screen
             const titleEl = document.getElementById('tourney-title');
             if(titleEl) titleEl.innerText = data.name || "Live Tournament";
             
@@ -819,15 +780,12 @@ window.editActiveTournament = function() {
         const data = snapshot.val();
         if (!data || !data.divisions) return alert("No active tournament found to edit.");
 
-        // 1. Load the data back into our working variables
         lockedDivisions = data.divisions;
         document.getElementById('tournament-name').value = data.name || "";
 
-        // 2. Switch the view back to the setup dashboard
         document.getElementById('admin-dashboard').style.display = 'block';
         document.getElementById('tournament-view').style.display = 'none';
 
-        // 3. Refresh the setup UI
         renderLockedDivisions();
         renderRoster();
         
@@ -835,32 +793,24 @@ window.editActiveTournament = function() {
     });
 };
 
-// --- INITIALIZE ---
-
-// 1. Attach the listener to the dropdown so it actually does something when clicked
 const pubSelector = document.getElementById('public-tournament-selector');
 if (pubSelector) {
     pubSelector.addEventListener('change', (e) => {
-        const path = e.target.value; // This will be 'active' or 'archived/unique_id'
-        
-        // Update the global state so match cards know to be "Read Only"
+        const path = e.target.value;
+
         isViewingArchive = path.startsWith('archived');
-        
-        // Only show the Archive button if we are Admin AND looking at the live event
+
         const archiveBtn = document.getElementById('btn-archive');
         if (archiveBtn) {
             archiveBtn.style.display = (isAdmin && !isViewingArchive) ? 'block' : 'none';
         }
-        
-        // Clear old Firebase listeners before switching to the new tournament path
+
         db.ref('tournaments').off(); 
         loadTournamentData(path);
     });
 }
 
-// 2. Run the initial data fetches
 loadArchiveList();
 refreshRosterFromDB();
 
-// 3. Kick things off by loading the active tournament by default
 loadTournamentData('active');
