@@ -652,15 +652,24 @@ window.saveScore = function() {
         }
     }
 
+    const getIdsFromNames = (teamNameStr) => {
+
+        const names = teamNameStr.split(' & '); 
+        return names.map(name => {
+            const trimmedName = name.trim();
+            const foundPlayer = allPlayers.find(p => p.name === trimmedName);
+
+            return foundPlayer ? Number(foundPlayer.id) : 0; 
+        }).filter(id => id !== 0);
+    };
+
     const pendingMatch = {
         id: Date.now(),
         mode: div.mode.toLowerCase(), 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        winners: winningTeam.ids || [],
-        winnerNames: winningTeam.name,
-        losers: losingTeam.ids || [],
-        loserNames: losingTeam.name,
-        detailedGames: detailedGames
+        winners: getIdsFromNames(winningTeam.name),
+        losers: getIdsFromNames(losingTeam.name),
+        games: detailedGames
     };
 
     db.ref('pending').push(pendingMatch)
