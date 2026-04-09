@@ -110,13 +110,22 @@ document.getElementById('btn-mode-doubles').addEventListener('click', (e) => {
 // --- ROSTER LOGIC ---
 function refreshRosterFromDB() {
     db.ref('players').once('value', (snapshot) => {
-        allPlayers = snapshot.val() || [];
+        const data = snapshot.val();
+        if (data) {
+            allPlayers = Object.keys(data).map(key => {
+                const p = data[key];
+                p.id = p.id || key; 
+                return p;
+            });
+        } else {
+            allPlayers = [];
+        }
+        
         renderRoster();
         const connStatus = document.getElementById('connection-status');
         if(connStatus) connStatus.innerText = "Realtime Connected ✅";
     });
 }
-
 searchInput.addEventListener('input', renderRoster);
 
 function getDraftedPlayerIds() {
@@ -673,13 +682,14 @@ window.saveScore = function() {
         id: Date.now(),
         mode: div.mode.toLowerCase(), 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        // Fallback to prevent Firebase 'undefined' errors on legacy divisions
-        winners: winningTeam.ids || ["missing_id"],
-        losers: losingTeam.ids || ["missing_id"],
+        winners: winningTeam.ids,
+        winnerNames: winningTeam.name,
+        losers: losingTeam.ids,
+        loserNames: losingTeam.name,
         detailedGames: detailedGames
     };
 
-    db.ref('pending').push(pendingMatch);
+    db.ref('pendingMatches').push(pendingMatch);
     
     progressBracket(divIdx, rIdx, mIdx);
     renderTournamentView();
