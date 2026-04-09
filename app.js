@@ -662,6 +662,15 @@ window.saveScore = function() {
     match.winner = p1Wins > p2Wins ? 'p1' : 'p2';
 
     // --- BUILD PENDING MATCH FOR ELO ENGINE ---
+    const getIdsFromNames = (teamNameStr) => {
+        const names = teamNameStr.split(' & '); 
+        return names.map(name => {
+            const trimmedName = name.trim();
+            const foundPlayer = allPlayers.find(p => p.name === trimmedName);
+            return foundPlayer ? foundPlayer.id : `wildcard_${Date.now()}`;
+        });
+    };
+
     const winningTeam = match.winner === 'p1' ? match.p1 : match.p2;
     const losingTeam = match.winner === 'p1' ? match.p2 : match.p1;
 
@@ -671,20 +680,19 @@ window.saveScore = function() {
         let s2 = parseInt(p2Inputs[i].value);
 
         if (!isNaN(s1) && !isNaN(s2)) {
-            // 'w' is the match winner's score for this specific game, 'l' is the match loser's
             let wScore = match.winner === 'p1' ? s1 : s2;
             let lScore = match.winner === 'p1' ? s2 : s1;
             detailedGames.push({ w: wScore, l: lScore });
         }
     }
 
-   const pendingMatch = {
+    const pendingMatch = {
         id: Date.now(),
         mode: div.mode.toLowerCase(), 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        winners: winningTeam.ids,
+        winners: getIdsFromNames(winningTeam.name),
         winnerNames: winningTeam.name,
-        losers: losingTeam.ids,
+        losers: getIdsFromNames(losingTeam.name),
         loserNames: losingTeam.name,
         detailedGames: detailedGames
     };
