@@ -398,7 +398,11 @@ document.getElementById('btn-start').addEventListener('click', () => {
         
         if (division.format === 'single_elim') {
             let p = [...division.participants];
-            p.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+
+            if (!division.isFromRR) {
+                p.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+            }
+
             let round1 = buildSeededMatchups(p);
 
             let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length || 1)));
@@ -485,7 +489,7 @@ function calculateStandings(players, matches) {
     });
 }
 
-window.advanceToKnockout = function(divIdx) {
+    window.advanceToKnockout = function(divIdx) {
     let oldDiv = lockedDivisions[divIdx];
     const knockoutName = oldDiv.name + " Knockout Bracket";
 
@@ -501,7 +505,8 @@ window.advanceToKnockout = function(divIdx) {
         format: "single_elim",
         mode: oldDiv.mode,
         participants: stats.map(s => s.player),
-        bracket: []
+        bracket: [],
+        isFromRR: true
     });
 
     document.getElementById('btn-start').click(); 
