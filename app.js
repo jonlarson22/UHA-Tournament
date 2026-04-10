@@ -570,7 +570,6 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
 
     let classA = "";
     let classB = "";
-
     if (hasScore) {
         if (match.p1Wins > match.p2Wins) {
             classA = "text-win";
@@ -582,7 +581,6 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
     }
 
     let actionArea = '';
-
     if (isViewingArchive) {
         actionArea = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:8px;">Archived - Read Only</div>`;
     } else if (teamA === "BYE" || teamB === "BYE") {
@@ -598,19 +596,19 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
     return `
         <div class="match-card">
             <div style="flex:1;">
-                <div class="match-team ${classA}">
-                    <span>${teamA}</span>
-                    <span>${scoreA}</span>
+                <div class="match-team">
+                    <span class="${classA}">${teamA}</span>
+                    <span style="color: #fff;">${scoreA}</span>
                 </div>
 
-                <div class="match-vs">vs</div>
+                <div class="match-vs" style="color: #fff;">vs</div>
 
-                <div class="match-team ${classB}">
-                    <span>${teamB}</span>
-                    <span>${scoreB}</span>
+                <div class="match-team">
+                    <span class="${classB}">${teamB}</span>
+                    <span style="color: #fff;">${scoreB}</span>
                 </div>
 
-                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#888; margin-top:8px; border-top: 1px solid #2a2a2a; padding-top: 5px;">${match.scores}</div>` : ''}
+                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#fff; margin-top:8px; border-top: 1px solid #333; padding-top: 5px;">${match.scores}</div>` : ''}
             </div>
             <div style="margin-top: 10px; display: flex; justify-content: center;">
                 ${actionArea}
