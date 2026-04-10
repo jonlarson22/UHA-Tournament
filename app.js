@@ -585,12 +585,23 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx) {
     return `
         <div class="match-card">
             <div style="flex:1;">
-                <div class="team-a" style="font-weight:bold;">${teamA} <span class="score-a" style="color:var(--uha-blue); margin-left:10px;">${scoreA}</span></div>
+                <div class="match-team">
+                    <span>${teamA}</span>
+                    <span style="color:var(--uha-blue);">${scoreA}</span>
+                </div>
+
                 <div class="match-vs">vs</div>
-                <div class="team-b" style="font-weight:bold;">${teamB} <span class="score-b" style="color:var(--uha-blue); margin-left:10px;">${scoreB}</span></div>
-                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#888; margin-top:5px;">${match.scores}</div>` : ''}
+
+                <div class="match-team">
+                    <span>${teamB}</span>
+                    <span style="color:var(--uha-blue);">${scoreB}</span>
+                </div>
+
+                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#888; margin-top:8px; border-top: 1px solid #2a2a2a; pt: 5px;">${match.scores}</div>` : ''}
             </div>
-            ${actionArea}
+            <div style="margin-top: 10px; display: flex; justify-content: center;">
+                ${actionArea}
+            </div>
         </div>
     `;
 }
