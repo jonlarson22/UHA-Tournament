@@ -101,6 +101,15 @@ document.getElementById('btn-mode-doubles').addEventListener('click', (e) => {
     renderRoster();
 });
 
+document.getElementById('format-select').addEventListener('change', (e) => {
+    const multiGroupSettings = document.getElementById('multi-group-settings');
+    if (e.target.value === 'multi_group_rr') {
+        multiGroupSettings.style.display = 'block';
+    } else {
+        multiGroupSettings.style.display = 'none';
+    }
+});
+
 function refreshRosterFromDB() {
     db.ref('players').once('value', (snapshot) => {
         const data = snapshot.val();
@@ -435,6 +444,41 @@ document.getElementById('btn-start').addEventListener('click', () => {
             }
             division.bracket = [matches]; 
         }
+
+        else if (division.format === 'multi_group_rr') {
+            let p = [...division.participants];
+            p.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+            
+            let numGroups = parseInt(document.getElementById('num-groups').value) || 2;
+            let groups = Array.from({length: numGroups}, () => []);
+
+            let direction = 1; 
+            let groupIndex = 0;
+            for (let i = 0; i < p.length; i++) {
+                groups[groupIndex].push(p[i]);
+                groupIndex += direction;
+                if (groupIndex >= numGroups || groupIndex < 0) {
+                    direction *= -1;
+                    groupIndex += direction;
+                }
+            }
+
+            let allGroupMatches = [];
+            groups.forEach(groupPlayers => {
+                let groupMatches = [];
+                for(let i=0; i<groupPlayers.length; i++) {
+                    for(let j=i+1; j<groupPlayers.length; j++) {
+                        groupMatches.push({ p1: groupPlayers[i], p2: groupPlayers[j], p1Wins: 0, p2Wins: 0, scores: '', winner: null });
+                    }
+                }
+                allGroupMatches.push(groupMatches);
+            });
+
+            division.draftedGroups = groups; 
+            division.bracket = allGroupMatches; 
+            division.advancementRule = document.getElementById('multi-group-advancement').value; 
+        }
+
     });
 
     const tName = document.getElementById('tournament-name').value || "Untitled Tournament";
@@ -533,34 +577,44 @@ function renderTournamentView() {
             }); 
             html += `</div></div>`; 
             
-        } else if (div.format === 'round_robin') {
-            let standings = calculateStandings(div.participants, div.bracket[0]);
-            
-            html += `<table class="standings-table">
-                <tr><th>Rk</th><th>Player / Team</th><th>Pts</th><th>W-L</th><th>Games Won</th><th>Total Score</th></tr>`;
-            standings.forEach((s, i) => {
-                html += `<tr>
-                    <td style="color:var(--uha-gold); font-weight:bold;">${i+1}</td>
-                    <td style="text-align:left; font-weight:bold;">${s.player.name}</td>
-                    <td style="color:var(--uha-blue); font-weight:bold;">${s.pts}</td>
-                    <td>${s.matchWins}-${s.matchLosses}</td>
-                    <td>${s.gamesWon}</td>
-                    <td>${s.totalScore}</td>
-                </tr>`;
+        } else if (div.format === 'round_robin' || div.format === 'multi_group_rr') {
+
+            div.bracket.forEach((groupMatches, groupIndex) => {
+                let groupParticipants = div.format === 'multi_group_rr' ? div.draftedGroups[groupIndex] : div.participants;
+                let standings = calculateStandings(groupParticipants, groupMatches);
+
+                if (div.format === 'multi_group_rr') {
+                    html += `<h3 style="color:var(--uha-blue); margin-top: 30px; border-left: 4px solid var(--uha-gold); padding-left: 10px;">Group ${groupIndex + 1}</h3>`;
+                }
+
+                html += `<table class="standings-table" style="margin-bottom: 20px;">
+                    <tr><th>Rk</th><th>Player / Team</th><th>Pts</th><th>W-L</th><th>Games Won</th><th>Total Score</th></tr>`;
+                standings.forEach((s, i) => {
+                    html += `<tr>
+                        <td style="color:var(--uha-gold); font-weight:bold;">${i+1}</td>
+                        <td style="text-align:left; font-weight:bold;">${s.player.name}</td>
+                        <td style="color:var(--uha-blue); font-weight:bold;">${s.pts}</td>
+                        <td>${s.matchWins}-${s.matchLosses}</td>
+                        <td>${s.gamesWon}</td>
+                        <td>${s.totalScore}</td>
+                    </tr>`;
+                });
+                html += `</table>`;
+
+                html += `<div class="bracket-columns" style="flex-wrap: wrap; margin-bottom: 40px;">`;
+                groupMatches.forEach((match, mIdx) => {
+
+                    html += generateMatchCardHTML(match, divIdx, groupIndex, mIdx);
+                });
+                html += `</div>`;
             });
-            html += `</table>`;
 
             if (isAdmin) {
-                html += `<button class="uha-btn uha-btn-gold" style="margin-bottom:20px;" onclick="advanceToKnockout(${divIdx})">Generate Knockout from Standings</button>`;
+                html += `<button class="uha-btn uha-btn-gold" style="margin-top:10px; margin-bottom:30px;" onclick="advanceToKnockout(${divIdx})">Generate Knockout(s) from Standings</button>`;
             }
-            
-            html += `<div class="bracket-columns" style="flex-wrap: wrap;">`;
-            div.bracket[0].forEach((match, mIdx) => {
-                html += generateMatchCardHTML(match, divIdx, 0, mIdx);
-            });
-            html += `</div>`;
         }
     });
+
     const container = document.getElementById('matchup-container');
     if (container) container.innerHTML = html;
 }
