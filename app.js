@@ -534,24 +534,76 @@ function calculateStandings(players, matches) {
 }
 
     window.advanceToKnockout = function(divIdx) {
-    let oldDiv = lockedDivisions[divIdx];
-    const knockoutName = oldDiv.name + " Knockout Bracket";
+    let div = lockedDivisions[divIdx];
 
-    const exists = lockedDivisions.some(d => d.name === knockoutName);
-    if (exists) {
-        return alert("A knockout bracket has already been generated for this group.");
+    const champName = div.name + " (Championship)";
+    if (lockedDivisions.some(d => d.name === champName)) {
+        return alert("Knockout brackets have already been generated for this group.");
     }
 
-    let stats = calculateStandings(oldDiv.participants, oldDiv.bracket[0]);
-    
-    lockedDivisions.push({
-        name: knockoutName,
-        format: "single_elim",
-        mode: oldDiv.mode,
-        participants: stats.map(s => s.player),
-        bracket: [],
-        isFromRR: true
+    let allStandings = [];
+
+    div.bracket.forEach((groupMatches, gIdx) => {
+        let groupParticipants = div.format === 'multi_group_rr' ? div.draftedGroups[gIdx] : div.participants;
+        let standings = calculateStandings(groupParticipants, groupMatches);
+
+        standings.forEach((s, rankIndex) => {
+            allStandings.push({
+                player: s.player,
+                groupRank: rankIndex + 1,
+                pts: s.pts,
+                winRatio: (s.matchWins + s.matchLosses) > 0 ? (s.matchWins / (s.matchWins + s.matchLosses)) : 0,
+                totalScore: s.totalScore,
+                gamesWon: s.gamesWon
+            });
+        });
     });
+
+    const superSort = (a, b) => {
+        if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank; // All 1sts rank above all 2nds
+        if (b.pts !== a.pts) return b.pts - a.pts; // Tie-breaker 1: Most points
+        if (b.winRatio !== a.winRatio) return b.winRatio - a.winRatio; // Tie-breaker 2: Best win percentage
+        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon; // Tie-breaker 3: Most individual games won
+        return b.totalScore - a.totalScore; // Tie-breaker 4: Total points scored
+    };
+
+    let sortedAll = allStandings.sort(superSort);
+
+    const rule = div.advancementRule || 'all_to_single'; 
+    
+    let championshipPlayers = [];
+    let consolationPlayers = [];
+
+    if (rule === 'all_to_single') {
+        championshipPlayers = sortedAll.map(s => s.player);
+    } else if (rule === 'top2_only') {
+        championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
+    } else if (rule === 'top2_split') {
+        championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
+        consolationPlayers = sortedAll.filter(s => s.groupRank > 2).map(s => s.player);
+    }
+
+    if (championshipPlayers.length > 0) {
+        lockedDivisions.push({
+            name: champName,
+            format: "single_elim",
+            mode: div.mode,
+            participants: championshipPlayers,
+            bracket: [],
+            isFromRR: true
+        });
+    }
+
+    if (consolationPlayers.length > 0) {
+        lockedDivisions.push({
+            name: div.name + " (Consolation)",
+            format: "single_elim",
+            mode: div.mode,
+            participants: consolationPlayers,
+            bracket: [],
+            isFromRR: true
+        });
+    }
 
     document.getElementById('btn-start').click(); 
 };
