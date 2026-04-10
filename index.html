@@ -64,11 +64,16 @@
             </div>
 
             <div class="column">
-                <div class="section-title">Players</div>
-                 
+               <div class="section-title">Players</div>
+
                 <div class="input-group" style="flex-wrap: wrap; background: #1a1a1a; padding: 10px; border-radius: 6px; border: 1px solid #333;">
                     <input type="text" id="new-player-name" placeholder="New Player Name" style="flex: 2; min-width: 150px; margin-bottom: 5px;">
-                    <input type="number" id="new-player-elo" placeholder="Est. ELO" value="1000" style="flex: 1; min-width: 80px; margin-bottom: 5px;">
+                    
+                    <div style="display: flex; gap: 5px; flex: 1; min-width: 170px; margin-bottom: 5px;">
+                        <input type="number" id="new-player-singles" placeholder="Singles" value="1000" style="width: 50%;">
+                        <input type="number" id="new-player-doubles" placeholder="Doubles" value="1000" style="width: 50%;">
+                    </div>
+                
                     <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <input type="checkbox" id="new-player-member" checked style="width: auto; margin: 0; cursor: pointer;">
