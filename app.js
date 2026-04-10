@@ -229,7 +229,8 @@ function updateTeamElo(teamDiv) {
 
 document.getElementById('btn-add-player').addEventListener('click', () => {
     const nameStr = document.getElementById('new-player-name').value.trim();
-    const eloVal = parseFloat(document.getElementById('new-player-elo').value) || 1000;
+    const singlesVal = parseFloat(document.getElementById('new-player-singles').value) || 1000;
+    const doublesVal = parseFloat(document.getElementById('new-player-doubles').value) || 1000;
     const isMember = document.getElementById('new-player-member').checked;
     
     if (!nameStr) return alert("Enter a player name");
@@ -241,12 +242,12 @@ document.getElementById('btn-add-player').addEventListener('click', () => {
     const newPlayer = {
         id: Date.now(),
         name: nameStr,
-        singles: eloVal,
-        doubles: eloVal,
-        baseS: eloVal,
-        baseD: eloVal,
-        peakS: eloVal,
-        peakD: eloVal,
+        singles: singlesVal,
+        doubles: doublesVal,
+        baseS: singlesVal,
+        baseD: doublesVal,
+        peakS: singlesVal,
+        peakD: doublesVal,
         active: true,
         isMember: isMember
     };
@@ -255,10 +256,12 @@ document.getElementById('btn-add-player').addEventListener('click', () => {
     db.ref('players').set(allPlayers)
         .then(() => {
             document.getElementById('new-player-name').value = '';
-            document.getElementById('new-player-elo').value = '1000';
+            document.getElementById('new-player-singles').value = '1000';
+            document.getElementById('new-player-doubles').value = '1000';
             document.getElementById('new-player-member').checked = true;
 
-            searchInput.value = nameStr;
+            const searchInput = document.getElementById('player-search'); // Ensure this ID matches your HTML
+            if (searchInput) searchInput.value = nameStr;
             refreshRosterFromDB(); 
         })
         .catch(e => alert("Error adding player: " + e.message));
@@ -484,10 +487,17 @@ function calculateStandings(players, matches) {
 
 window.advanceToKnockout = function(divIdx) {
     let oldDiv = lockedDivisions[divIdx];
+    const knockoutName = oldDiv.name + " Knockout Bracket";
+
+    const exists = lockedDivisions.some(d => d.name === knockoutName);
+    if (exists) {
+        return alert("A knockout bracket has already been generated for this group.");
+    }
+
     let stats = calculateStandings(oldDiv.participants, oldDiv.bracket[0]);
     
     lockedDivisions.push({
-        name: oldDiv.name + " (Championship Knockout)",
+        name: knockoutName,
         format: "single_elim",
         mode: oldDiv.mode,
         participants: stats.map(s => s.player),
@@ -534,8 +544,11 @@ function renderTournamentView() {
                 </tr>`;
             });
             html += `</table>`;
-            html += `<button class="uha-btn uha-btn-gold" style="margin-bottom:20px;" onclick="advanceToKnockout(${divIdx})">Generate Knockout from Standings</button>`;
 
+            if (isAdmin) {
+                html += `<button class="uha-btn uha-btn-gold" style="margin-bottom:20px;" onclick="advanceToKnockout(${divIdx})">Generate Knockout from Standings</button>`;
+            }
+            
             html += `<div class="bracket-columns" style="flex-wrap: wrap;">`;
             div.bracket[0].forEach((match, mIdx) => {
                 html += generateMatchCardHTML(match, divIdx, 0, mIdx);
