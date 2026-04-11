@@ -599,6 +599,7 @@ function calculateStandings(players, matches) {
             allStandings.push({
                 player: s.player,
                 groupRank: rankIndex + 1,
+                groupIdx: gIdx,
                 pts: s.pts,
                 winRatio: (s.matchWins + s.matchLosses) > 0 ? (s.matchWins / (s.matchWins + s.matchLosses)) : 0,
                 totalScore: s.totalScore,
@@ -607,28 +608,50 @@ function calculateStandings(players, matches) {
         });
     });
 
-    const superSort = (a, b) => {
-        if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank; // All 1sts rank above all 2nds
-        if (b.pts !== a.pts) return b.pts - a.pts; // Tie-breaker 1: Most points
-        if (b.winRatio !== a.winRatio) return b.winRatio - a.winRatio; // Tie-breaker 2: Best win percentage
-        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon; // Tie-breaker 3: Most individual games won
-        return b.totalScore - a.totalScore; // Tie-breaker 4: Total points scored
-    };
-
-    let sortedAll = allStandings.sort(superSort);
-
     const rule = div.advancementRule || 'all_to_single'; 
     
     let championshipPlayers = [];
     let consolationPlayers = [];
 
     if (rule === 'all_to_single') {
+
+        const superSort = (a, b) => {
+            if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank;
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.winRatio !== a.winRatio) return b.winRatio - a.winRatio;
+            if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
+            return b.totalScore - a.totalScore;
+        };
+        let sortedAll = allStandings.sort(superSort);
         championshipPlayers = sortedAll.map(s => s.player);
-    } else if (rule === 'single_bracket') { 
-        championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
-    } else if (rule === 'split_bracket') { 
-        championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
-        consolationPlayers = sortedAll.filter(s => s.groupRank > 2).map(s => s.player);
+        
+    } else {
+
+        const perfSort = (a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.winRatio !== a.winRatio) return b.winRatio - a.winRatio;
+            if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
+            return b.totalScore - a.totalScore;
+        };
+        
+        let rank1s = allStandings.filter(s => s.groupRank === 1).sort(perfSort);
+        let poolOrder = rank1s.map(s => s.groupIdx); 
+
+        if (poolOrder.length === 0) poolOrder = div.bracket.map((_, i) => i);
+
+        const crossSort = (a, b) => {
+            if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank;
+            return poolOrder.indexOf(a.groupIdx) - poolOrder.indexOf(b.groupIdx);
+        };
+
+        let sortedAll = allStandings.sort(crossSort);
+
+        if (rule === 'single_bracket') { 
+            championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
+        } else if (rule === 'split_bracket') { 
+            championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
+            consolationPlayers = sortedAll.filter(s => s.groupRank > 2).map(s => s.player);
+        }
     }
 
     if (championshipPlayers.length > 0) {
