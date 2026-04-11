@@ -624,9 +624,9 @@ function calculateStandings(players, matches) {
 
     if (rule === 'all_to_single') {
         championshipPlayers = sortedAll.map(s => s.player);
-    } else if (rule === 'top2_only') {
+    } else if (rule === 'single_bracket') { 
         championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
-    } else if (rule === 'top2_split') {
+    } else if (rule === 'split_bracket') { 
         championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
         consolationPlayers = sortedAll.filter(s => s.groupRank > 2).map(s => s.player);
     }
