@@ -433,7 +433,52 @@ document.getElementById('btn-start').addEventListener('click', () => {
                 }
             });
             division.bracket = bracket;
-        } 
+        }
+            
+        else if (division.format === 'double_elim') {
+            let p = [...division.participants];
+
+            if (!division.isFromRR) {
+                p.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+            }
+
+            let round1 = buildSeededMatchups(p);
+
+            let nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(p.length || 1)));
+            if(nextPowerOf2 < 2) nextPowerOf2 = 2;
+            let winnersRoundsCount = Math.log2(nextPowerOf2);
+            
+            let wBracket = [round1];
+            for(let r=1; r < winnersRoundsCount; r++) {
+                let matchesInRound = nextPowerOf2 / Math.pow(2, r+1);
+                wBracket.push(Array.from({length: matchesInRound}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null})));
+            }
+
+            round1.forEach((match, mIdx) => {
+                if (match.scores === 'BYE' && match.winner && wBracket[1]) {
+                    let advancer = match[match.winner]; 
+                    let nextMIdx = Math.floor(mIdx / 2);
+                    if (mIdx % 2 === 0) wBracket[1][nextMIdx].p1 = advancer;
+                    else wBracket[1][nextMIdx].p2 = advancer;
+                }
+            });
+
+            let losersRoundsCount = (winnersRoundsCount * 2) - 2;
+            let lBracket = [];
+
+            let currentLoserMatches = nextPowerOf2 / 2; 
+            for (let r = 0; r < losersRoundsCount; r++) {
+
+                if (r > 0 && r % 2 === 0) {
+                    currentLoserMatches = currentLoserMatches / 2;
+                }
+                lBracket.push(Array.from({length: currentLoserMatches}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null, isLosers: true})));
+            }
+
+            division.bracket = wBracket;
+            division.losersBracket = lBracket;
+        }
+                        
         else if (division.format === 'round_robin') {
             let p = [...division.participants];
             let matches = [];
@@ -613,21 +658,39 @@ function renderTournamentView() {
     lockedDivisions.forEach((div, divIdx) => {
         html += `<div class="section-title" style="margin-top: 40px; border-top: 1px solid #444; padding-top:20px;">${div.name} (${div.mode} - ${div.format === 'single_elim' ? 'Knockout' : 'Round Robin'})</div>`;
         
-        if (div.format === 'single_elim') {
+        if (div.format === 'single_elim' || div.format === 'double_elim') {
+
+            if (div.format === 'double_elim') {
+                html += `<h3 style="color:var(--uha-blue); margin-top: 10px;">Winners Bracket</h3>`;
+            }
             html += `<div class="bracket-layout"><div class="bracket-columns">`;
             
             div.bracket.forEach((round, rIdx) => {
                 html += `<div class="bracket-round">`;
                 html += `<div class="bracket-header" style="margin-bottom: 20px;">Round ${rIdx + 1}</div>`; 
                 html += `<div class="bracket-matches">`; 
-                
                 round.forEach((match, mIdx) => {
                     html += generateMatchCardHTML(match, divIdx, rIdx, mIdx);
                 });
-                
                 html += `</div></div>`; 
             }); 
             html += `</div></div>`; 
+
+            if (div.format === 'double_elim' && div.losersBracket) {
+                html += `<hr style="border: 0; border-top: 2px dashed #444; margin: 40px 0;">`;
+                html += `<h3 style="color:var(--uha-red); margin-top: 10px;">Losers Bracket</h3>`;
+                
+                html += `<div class="bracket-layout"><div class="bracket-columns">`;
+                div.losersBracket.forEach((round, rIdx) => {
+                    html += `<div class="bracket-round">`;
+                    html += `<div class="bracket-header" style="margin-bottom: 20px; color: var(--uha-red);">L-Round ${rIdx + 1}</div>`; 
+                    html += `<div class="bracket-matches">`; 
+                    round.forEach((match, mIdx) => {
+                        html += generateMatchCardHTML(match, divIdx, rIdx, mIdx, 'losers'); 
+                    });
+                    html += `</div></div>`; 
+                }); 
+                html += `</div></div>`;
             
         } else if (div.format === 'round_robin' || div.format === 'multi_group_rr') {
 
