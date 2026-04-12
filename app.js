@@ -602,12 +602,17 @@ function calculateStandings(players, matches) {
     });
 
     return Object.values(stats).sort((a, b) => {
-        if (b.pts !== a.pts) return b.pts - a.pts; 
-        if (a.h2hWins.includes(b.player.name)) return -1; 
-        if (b.h2hWins.includes(a.player.name)) return 1;
-        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon; 
-        return b.totalScore - a.totalScore; 
-    });
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    
+    if (a.h2hWins.includes(b.player.name)) return -1;
+    if (b.h2hWins.includes(a.player.name)) return 1;
+
+    let aGameRatio = a.gamesWon / (a.matchWins + a.matchLosses || 1);
+    let bGameRatio = b.gamesWon / (b.matchWins + b.matchLosses || 1);
+    if (bGameRatio !== aGameRatio) return bGameRatio - aGameRatio;
+
+    return b.totalScore - a.totalScore;
+});
 }
 
     window.advanceToKnockout = function(divIdx) {
@@ -999,24 +1004,23 @@ window.saveScore = function() {
 
 function wipeForwardBracket(divIdx, rIdx, mIdx, bType = 'winners') {
     let div = lockedDivisions[divIdx];
-    let currRIdx = rIdx;
-    let currMIdx = mIdx;
-    
     let targetBracket = bType === 'losers' ? div.losersBracket : div.bracket;
 
-    while (targetBracket[currRIdx + 1]) {
-        let nextRIdx = currRIdx + 1;
-        let nextMIdx = (bType === 'losers' && currRIdx % 2 === 0) ? currMIdx : Math.floor(currMIdx / 2);
-        let nextMatch = targetBracket[nextRIdx][nextMIdx];
+    let currR = rIdx;
+    let currM = mIdx;
+
+    while (targetBracket[currR + 1]) {
+
+        let nextM = (bType === 'losers' && currR % 2 === 0) ? currM : Math.floor(currM / 2);
+        let nextMatch = targetBracket[currR + 1][nextM];
 
         if (nextMatch) {
             nextMatch.p1 = null; nextMatch.p2 = null;
             nextMatch.scores = ''; nextMatch.p1Wins = 0; nextMatch.p2Wins = 0;
             nextMatch.winner = null;
         }
-
-        currRIdx = nextRIdx; 
-        currMIdx = nextMIdx;
+        currR++;
+        currM = nextM;
     }
 }
 
