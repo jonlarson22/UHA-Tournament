@@ -468,7 +468,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
                 lBracket.push(Array.from({length: Math.max(1, currentLoserMatches)}, () => ({p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null, isLosers: true})));
             }
 
-            wBracket.forEach((round, rIdx) => {
+           wBracket.forEach((round, rIdx) => {
                 round.forEach((match, mIdx) => {
                     if (rIdx === 0) {
                         match.loserDest = {
@@ -476,7 +476,18 @@ document.getElementById('btn-start').addEventListener('click', () => {
                             mIdx: Math.floor(mIdx / 2),
                             slot: mIdx % 2 === 0 ? 'p1' : 'p2'
                         };
+                    } else if (rIdx === 1) {
+                        let crossoverMIdx = mIdx % 2 === 0 ? mIdx + 1 : mIdx - 1;
+
+                        if (crossoverMIdx >= round.length) crossoverMIdx = mIdx;
+            
+                        match.loserDest = {
+                            rIdx: (rIdx * 2) - 1,
+                            mIdx: crossoverMIdx,
+                            slot: 'p2'
+                        };
                     } else {
+
                         match.loserDest = {
                             rIdx: (rIdx * 2) - 1,
                             mIdx: mIdx,
