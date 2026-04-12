@@ -557,10 +557,16 @@ function calculateStandings(players, matches) {
             stats[w.name].matchWins++;
             stats[w.name].pts += 2; 
             stats[l.name].matchLosses++;
+
+            // --- 2-1-0 POINT LOGIC ---
+            let games = (m.scores || "").split(',');
+            if (games.length === 3 && games[0] !== 'BYE') {
+                stats[l.name].pts += 1; // 1 pt for tie-breaker loss
+            }
+
             stats[m.p1.name].gamesWon += m.p1Wins;
             stats[m.p2.name].gamesWon += m.p2Wins;
 
-            let games = m.scores.split(',');
             games.forEach(g => {
                 let s = g.trim().split('-');
                 if(s.length===2) {
@@ -646,11 +652,30 @@ function calculateStandings(players, matches) {
 
         let sortedAll = allStandings.sort(crossSort);
 
+        const buildCrossRoster = (standings, ranks) => {
+            let roster = [];
+            for (let i = 0; i < ranks.length; i++) {
+                let rankPlayers = standings.filter(s => s.groupRank === ranks[i]).map(s => s.player);
+
+                if (i % 2 !== 0 && rankPlayers.length >= 4) {
+                    let half = Math.floor(rankPlayers.length / 2);
+                    rankPlayers = rankPlayers.slice(half).concat(rankPlayers.slice(0, half));
+                }
+                roster = roster.concat(rankPlayers);
+            }
+            return roster;
+        };
+
         if (rule === 'single_bracket') { 
-            championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
+            championshipPlayers = buildCrossRoster(sortedAll, [1, 2]);
         } else if (rule === 'split_bracket') { 
-            championshipPlayers = sortedAll.filter(s => s.groupRank <= 2).map(s => s.player);
-            consolationPlayers = sortedAll.filter(s => s.groupRank > 2).map(s => s.player);
+            championshipPlayers = buildCrossRoster(sortedAll, [1, 2]);
+            
+            let maxRank = Math.max(...allStandings.map(s => s.groupRank));
+            let consRanks = [];
+            for(let r = 3; r <= maxRank; r++) consRanks.push(r);
+            
+            consolationPlayers = buildCrossRoster(sortedAll, consRanks);
         }
     }
 
@@ -882,7 +907,7 @@ window.saveScore = function() {
     if (scoreStrings.length === 0) return alert("Please enter at least one game score.");
     if (p1Wins === p2Wins) return alert("Match cannot end in a tie.");
 
-    if (match.winner && div.format === 'single_elim') {
+    if (match.winner && (div.format === 'single_elim' || div.format === 'double_elim')) {
         let nextRIdx = rIdx + 1;
         let nextMIdx = Math.floor(mIdx / 2);
         if (div.bracket[nextRIdx] && div.bracket[nextRIdx][nextMIdx].p1) {
@@ -968,16 +993,30 @@ function wipeForwardBracket(divIdx, rIdx, mIdx) {
 
 function progressBracket(divIdx, rIdx, mIdx) {
     let div = lockedDivisions[divIdx];
-    if (div.format !== 'single_elim') return; 
+    if (div.format !== 'single_elim' && div.format !== 'double_elim') return; 
 
     let match = div.bracket[rIdx][mIdx];
     let winner = match.winner === 'p1' ? match.p1 : match.p2;
+    let loser = match.winner === 'p1' ? match.p2 : match.p1;
+    
     let nextRIdx = rIdx + 1;
     let nextMIdx = Math.floor(mIdx / 2);
 
     if (div.bracket[nextRIdx]) {
         if (mIdx % 2 === 0) div.bracket[nextRIdx][nextMIdx].p1 = winner;
         else div.bracket[nextRIdx][nextMIdx].p2 = winner;
+    }
+
+    if (div.format === 'double_elim' && div.losersBracket) {
+        if (match.loserDest) { 
+            let lr = match.loserDest.rIdx;
+            let lm = match.loserDest.mIdx;
+            let slot = match.loserDest.slot;
+
+            if (div.losersBracket[lr] && div.losersBracket[lr][lm]) {
+                div.losersBracket[lr][lm][slot] = loser;
+            }
+        }
     }
 }
 
