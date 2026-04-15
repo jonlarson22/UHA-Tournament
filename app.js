@@ -889,7 +889,6 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx, bracketType = 'winners
     let scoreA = hasScore ? `[${match.p1Wins}]` : '';
     let scoreB = hasScore ? `[${match.p2Wins}]` : '';
 
-    // --- NEW COLOR LOGIC ---
     let classA = "";
     let classB = "";
 
@@ -902,20 +901,19 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx, bracketType = 'winners
             classB = "text-win";
         }
     }
-    // -----------------------
 
     let actionArea = '';
 
     if (isViewingArchive) {
-        actionArea = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:8px;">Archived - Read Only</div>`;
+        actionArea = `<div style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">Archived - Read Only</div>`;
     } else if (teamA === "BYE" || teamB === "BYE") {
-        actionArea = `<div style="color:var(--text-muted); font-size:12px; text-align:center; padding:8px;">Auto-Advance</div>`;
+        actionArea = `<div style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">Auto-Advance</div>`;
     } else if (!hasScore) {
-        actionArea = `<button class="uha-btn" style="width:auto; padding:8px 15px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Enter Score</button>`;
+        actionArea = `<button class="uha-btn" style="width:auto; padding:5px 10px; font-size:12px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Enter Score</button>`;
     } else if (hasScore && isAdmin) {
-        actionArea = `<button class="uha-btn uha-btn-outline" style="width:auto; padding:8px 15px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Edit Score</button>`;
+        actionArea = `<button class="uha-btn uha-btn-outline" style="width:auto; padding:5px 10px; font-size:11px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Edit Scores</button>`;
     } else {
-        actionArea = `<div style="color:var(--uha-gold); font-size:12px; text-align:center; padding:8px; font-weight:bold;">Match Complete</div>`;
+        actionArea = `<div style="color:var(--uha-gold); font-size:11px; text-align:center; padding:5px; font-weight:bold;">Complete</div>`;
     }
 
     return `
@@ -926,16 +924,16 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx, bracketType = 'winners
                     <span>${scoreA}</span>
                 </div>
 
-                <div class="match-vs" style="color: #3498db;">vs</div>
+                <div class="match-vs" style="color: #3498db; margin: 2px 0;">vs</div>
 
                 <div class="match-team ${classB}">
                     <span>${teamB}</span>
                     <span>${scoreB}</span>
                 </div>
 
-                ${hasScore ? `<div style="text-align:center; font-size:11px; color:#fff; margin-top:8px; border-top: 1px solid #2a2a2a; padding-top: 5px;">${match.scores}</div>` : ''}
+                ${hasScore ? `<div style="text-align:center; font-size:10px; color:#fff; margin-top:5px; border-top: 1px solid #2a2a2a; padding-top: 3px;">${match.scores}</div>` : ''}
             </div>
-            <div style="margin-top: 10px; display: flex; justify-content: center;">
+            <div style="margin-top: 8px; display: flex; justify-content: center;">
                 ${actionArea}
             </div>
         </div>
@@ -1058,6 +1056,7 @@ window.saveScore = function() {
     .catch(e => console.error("Firebase Rules blocked pending write:", e));
 
     progressBracket(divIdx, rIdx, mIdx);
+    checkForByeAdvancement(divIdx);
     renderTournamentView();
     closeScoreModal();
 
@@ -1069,6 +1068,51 @@ window.saveScore = function() {
         divisions: lockedDivisions
     }).catch(e => console.error("Firebase auto-save failed:", e));
 };
+
+function checkForByeAdvancement(divIdx) {
+    const div = lockedDivisions[divIdx];
+    let advancedAny = false;
+
+    const checkBracket = (bracket) => {
+        if (!bracket) return;
+        bracket.forEach((round, rIdx) => {
+            round.forEach((match, mIdx) => {
+                const hasP1 = !!match.p1;
+                const hasP2 = !!match.p2;
+
+                if (hasP1 && match.p2 === null && !match.winner) {
+                    match.winner = 'p1';
+                    match.scores = "BYE";
+                    if (match.nextMatch) {
+                        const nm = match.nextMatch;
+                        const targetBracket = nm.type === 'losers' ? div.losersBracket : (nm.type === 'finals' ? div.finalsBracket : div.bracket);
+                        targetBracket[nm.round][nm.matchIdx][nm.slot] = match.p1;
+                    }
+                    advancedAny = true;
+                }
+
+                if (hasP2 && match.p1 === null && !match.winner) {
+                    match.winner = 'p2';
+                    match.scores = "BYE";
+                    if (match.nextMatch) {
+                        const nm = match.nextMatch;
+                        const targetBracket = nm.type === 'losers' ? div.losersBracket : (nm.type === 'finals' ? div.finalsBracket : div.bracket);
+                        targetBracket[nm.round][nm.matchIdx][nm.slot] = match.p2;
+                    }
+                    advancedAny = true;
+                }
+            });
+        });
+    };
+
+    checkBracket(div.bracket);
+    checkBracket(div.losersBracket);
+    checkBracket(div.finalsBracket);
+
+    if (advancedAny) {
+        checkForByeAdvancement(divIdx);
+    }
+}
 
 function wipeForwardBracket(divIdx, rIdx, mIdx, bType = 'winners') {
     let div = lockedDivisions[divIdx];
