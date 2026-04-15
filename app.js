@@ -783,7 +783,8 @@ function calculateStandings(players, matches) {
 function renderTournamentView() {
     let html = '';
     lockedDivisions.forEach((div, divIdx) => {
-        html += `<div class="section-title" style="margin-top: 40px; border-top: 1px solid #444; padding-top:20px;">${div.name} (${div.mode} - ${div.format === 'single_elim' ? 'Knockout' : 'Round Robin'})</div>`;
+        let formatLabel = div.format.includes('elim') ? 'Knockout' : 'Round Robin';
+        html += `<div class="section-title" style="margin-top: 40px; border-top: 1px solid #444; padding-top:20px;">${div.name} (${div.mode} - ${formatLabel})</div>`;
         
         if (div.format === 'single_elim' || div.format === 'double_elim') {
 
@@ -806,6 +807,18 @@ function renderTournamentView() {
             if (div.format === 'double_elim' && div.losersBracket) {
                 html += `<hr style="border: 0; border-top: 2px dashed #444; margin: 40px 0;">`;
                 html += `<h3 style="color:var(--uha-red); margin-top: 10px;">Losers Bracket</h3>`;
+                
+                html += `<div class="bracket-layout"><div class="bracket-columns">`;
+                div.losersBracket.forEach((round, rIdx) => {
+                    html += `<div class="bracket-round">`;
+                    html += `<div class="bracket-header" style="margin-bottom: 20px; color: var(--uha-red);">L-Round ${rIdx + 1}</div>`; 
+                    html += `<div class="bracket-matches">`; 
+                    round.forEach((match, mIdx) => {
+                        // Pass 'losers' so the score modal knows which bracket to update
+                        html += generateMatchCardHTML(match, divIdx, rIdx, mIdx, 'losers'); 
+                    });
+                    html += `</div></div>`; 
+                }); 
                 html += `</div></div>`;
             }
 
@@ -820,7 +833,6 @@ function renderTournamentView() {
                         html += `<div class="bracket-round">`;
                         html += `<div class="bracket-header" style="margin-bottom: 20px; color: var(--uha-gold);">${rIdx === 0 ? 'Match 1' : 'If Necessary'}</div>`;
                         html += `<div class="bracket-matches">`;
-                        // Pass 'finals' as the bracketType
                         html += generateMatchCardHTML(match, divIdx, rIdx, 0, 'finals'); 
                         html += `</div></div>`;
                     }
@@ -854,7 +866,6 @@ function renderTournamentView() {
 
                 html += `<div class="bracket-columns" style="flex-wrap: wrap; margin-bottom: 40px;">`;
                 groupMatches.forEach((match, mIdx) => {
-
                     html += generateMatchCardHTML(match, divIdx, groupIndex, mIdx);
                 });
                 html += `</div>`;
