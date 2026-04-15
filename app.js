@@ -1078,16 +1078,16 @@ function autoAdvanceByes(divIdx) {
         bracket.forEach((round) => {
             round.forEach((match) => {
                 if (match.winner) return;
-
-                const p1Exists = !!match.p1;
-                const p2Exists = !!match.p2;
-
-                if (p1Exists && match.p2 === null) {
+            
+                const p1Exists = (match.p1 && match.p1.name !== "BYE");
+                const p2Exists = (match.p2 && match.p2.name !== "BYE");
+            
+                if (p1Exists && (match.p2 === null || match.p2.name === "BYE")) {
                     advanceMatch(match, 'p1', div);
                     madeChanges = true;
                 } 
-
-                else if (p2Exists && match.p1 === null) {
+            
+                else if (p2Exists && (match.p1 === null || match.p1.name === "BYE")) {
                     advanceMatch(match, 'p2', div);
                     madeChanges = true;
                 }
