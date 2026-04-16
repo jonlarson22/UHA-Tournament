@@ -850,10 +850,10 @@ function renderTournamentView() {
                 }
 
                 html += `<table class="standings-table" style="margin-bottom: 20px;">
-                    <tr><th style="text-align: center; width: 10%;">Rank</th><th style="text-align: left; width: 30%;">Player / Team</th><th style="text-align: center; width: 15%;">Points</th><th style="text-align: center; width: 15%;">Match Record</th><th style="text-align: center; width: 15%;">Games Won</th><th style="text-align: center; width: 15%;">Points Scored</th></tr>`;
+                    <tr><th style="text-align: center; width: 12.5%;">Group Rank</th><th style="text-align: left; width: 37.5%;">Player / Team</th><th style="text-align: center; width: 12.5%;">Points</th><th style="text-align: center; width: 12.5%;">Match Record</th><th style="text-align: center; width: 12.5%;">Games Won</th><th style="text-align: center; width: 12.5%;">Points Scored</th></tr>`;
                 standings.forEach((s, i) => {
                     html += `<tr>
-                        <td style="color:var(--uha-gold); text-align: center; font-weight:bold;">#${i+1}</td>
+                        <td style="color:var(--uha-blue); text-align: center; font-weight:bold;">#${i+1}</td>
                         <td style="text-align:left; font-weight:bold;">${s.player.name}</td>
                         <td style="font-weight:bold; text-align: center;">${s.pts}</td>
                         <td style="text-align: center;">${s.matchWins}-${s.matchLosses}</td>
