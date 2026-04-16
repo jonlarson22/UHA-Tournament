@@ -1004,14 +1004,18 @@ window.saveScore = function() {
     if (p1Wins === p2Wins) return alert("Match cannot end in a tie.");
 
     if (match.winner && (div.format === 'single_elim' || div.format === 'double_elim')) {
-        let nextRIdx = rIdx + 1;
-        let nextMIdx = (bType === 'losers' && rIdx % 2 === 0) ? mIdx : Math.floor(mIdx / 2);
+    let nextRIdx = rIdx + 1;
+    let nextMIdx = (bType === 'losers' && rIdx % 2 === 0) ? mIdx : Math.floor(mIdx / 2);
+
+    if (targetBracket[nextRIdx] && targetBracket[nextRIdx][nextMIdx]) {
+        let nextMatch = targetBracket[nextRIdx][nextMIdx];
         
-        if (targetBracket[nextRIdx] && targetBracket[nextRIdx][nextMIdx] && targetBracket[nextRIdx][nextMIdx].p1) {
+        if (nextMatch.winner) {
             if(!confirm("Warning: Changing this score will erase the bracket forward. Continue?")) return;
             wipeForwardBracket(divIdx, rIdx, mIdx, bType);
         }
     }
+}
 
     match.scores = scoreStrings.join(', ');
     match.p1Wins = p1Wins;
@@ -1067,7 +1071,9 @@ window.saveScore = function() {
     renderTournamentView();
     closeScoreModal();
 
-    const tName = document.getElementById('tourney-title').innerText;
+    const titleEl = document.getElementById('tourney-title');
+    const inputEl = document.getElementById('tournament-name');
+    const tName = titleEl ? titleEl.innerText : (inputEl ? inputEl.value : "UHA Tournament");
 
     db.ref('tournaments/active').set({
         name: tName, 
