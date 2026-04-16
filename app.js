@@ -907,7 +907,11 @@ function generateMatchCardHTML(match, divIdx, rIdx, mIdx, bracketType = 'winners
     if (isViewingArchive) {
         actionArea = `<div style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">Archived - Read Only</div>`;
     } else if (teamA === "BYE" || teamB === "BYE") {
-        actionArea = `<div style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">Auto-Advance</div>`;
+        if (isAdmin && !hasScore) {
+            actionArea = `<button class="uha-btn uha-btn-outline" style="width:auto; padding:5px 10px; font-size:11px; border-color: #e74c3c; color: #e74c3c;" onclick="adminAutoWinBye(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Admin: Advance BYE</button>`;
+        } else {
+            actionArea = `<div style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">Auto-Advance</div>`;
+        }
     } else if (!hasScore) {
         actionArea = `<button class="uha-btn" style="width:auto; padding:5px 10px; font-size:12px;" onclick="openScoreModal(${divIdx}, ${rIdx}, ${mIdx}, '${bracketType}')">Enter Score</button>`;
     } else if (hasScore && isAdmin) {
@@ -1162,22 +1166,82 @@ function progressBracket(divIdx, rIdx, mIdx) {
     }
 }
 
-window.forceMovePlayer = function(divIdx, bType, fromRound, fromMatch, toRound, toMatch, slot) {
-    const div = lockedDivisions[divIdx];
-    const bracket = bType === 'losers' ? div.losersBracket : div.bracket;
+window.adminAutoWinBye = function(divIdx, rIdx, mIdx, bType) {
+    if (!confirm("Admin: Advance the real player past this BYE?")) return;
     
-    const sourceMatch = bracket[fromRound][fromMatch];
-    const playerToMove = sourceMatch.winner === 'p1' ? sourceMatch.p1 : sourceMatch.p2;
+    const div = lockedDivisions[divIdx];
+    const targetBracket = bType === 'finals' ? div.finalsBracket : (bType === 'losers' ? div.losersBracket : div.bracket);
+    const match = targetBracket[rIdx][mIdx];
 
-    if (slot === 'p1') {
-        bracket[toRound][toMatch].p1 = playerToMove;
-    } else {
-        bracket[toRound][toMatch].p2 = playerToMove;
+    const p1IsBye = !match.p1 || match.p1.name === "BYE";
+    const p2IsBye = !match.p2 || match.p2.name === "BYE";
+
+    if (p1IsBye && p2IsBye) return alert("Both slots are empty or BYEs. Nothing to advance.");
+
+    match.winner = p1IsBye ? 'p2' : 'p1';
+    match.scores = "BYE";
+    match.p1Wins = p1IsBye ? 0 : 1;
+    match.p2Wins = p1IsBye ? 1 : 0;
+
+    currentScoreContext = { divIdx, rIdx, mIdx, bType };
+    
+    try {
+        progressBracket(divIdx, rIdx, mIdx);
+    } catch (e) {
+        console.error("Progress error:", e);
+        alert("Advanced the score, but could not push forward automatically. Use the Override tool.");
+    }
+    
+    currentScoreContext = null;
+    renderTournamentView();
+
+    const titleEl = document.getElementById('tourney-title');
+    const inputEl = document.getElementById('tournament-name');
+    const tName = titleEl ? titleEl.innerText : (inputEl ? inputEl.value : "UHA Tournament");
+
+    db.ref('tournaments/active').set({
+        name: tName,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP,
+        divisions: lockedDivisions
+    }).catch(e => console.error("Firebase auto-save failed:", e));
+};
+
+window.openManualMoveModal = function() {
+    if (!lockedDivisions || lockedDivisions.length === 0) return alert("No active divisions to edit.");
+    const selector = document.getElementById('move-div-idx');
+    selector.innerHTML = lockedDivisions.map((div, i) => `<option value="${i}">${div.name}</option>`).join('');
+    document.getElementById('manual-move-modal').style.display = 'flex';
+};
+
+window.executeManualMove = function() {
+    const divIdx = document.getElementById('move-div-idx').value;
+    const pName = document.getElementById('move-player-name').value.trim();
+    const bType = document.getElementById('move-target-bracket').value; 
+    const roundNum = parseInt(document.getElementById('move-target-round').value) - 1; // 0-indexed internally
+    const matchNum = parseInt(document.getElementById('move-target-match').value) - 1; // 0-indexed internally
+    const slot = document.getElementById('move-target-slot').value;
+
+    if (!pName) return alert("Please enter a player name.");
+    if (isNaN(roundNum) || isNaN(matchNum)) return alert("Please enter valid Round and Match numbers.");
+
+    const div = lockedDivisions[divIdx];
+    const targetBracket = div[bType];
+
+    if (!targetBracket || !targetBracket[roundNum] || !targetBracket[roundNum][matchNum]) {
+        return alert("That specific round or match does not exist in the selected bracket.");
     }
 
-    renderTournamentView();
-    db.ref('tournaments/active/divisions').set(lockedDivisions);
-    alert("Player moved manually.");
+    let playerObj = allPlayers.find(p => p.name.toLowerCase() === pName.toLowerCase());
+    if (!playerObj) playerObj = div.participants.find(p => p.name.toLowerCase() === pName.toLowerCase());
+    if (!playerObj) playerObj = { name: pName, elo: 1000 }; // Final fallback
+
+    targetBracket[roundNum][matchNum][slot] = playerObj;
+
+    db.ref('tournaments/active').update({ divisions: lockedDivisions }).then(() => {
+        alert(`Successfully moved ${playerObj.name}.`);
+        renderTournamentView();
+        document.getElementById('manual-move-modal').style.display = 'none';
+    }).catch(e => alert("Error saving move: " + e.message));
 };
 
 window.archiveTournament = function() {
