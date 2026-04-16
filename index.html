@@ -68,7 +68,11 @@
                 <button id="btn-start" class="uha-btn" style="margin-top: 15px;">Start Tournament</button>
 
                 <button id="btn-edit-active" class="uha-btn-outline" onclick="editActiveTournament()" style="margin-top: 10px; border-color: var(--uha-blue); color: var(--uha-blue);">
-                    Edit/Resume Live Tournament Setup
+                    Edit Live Tournament Setup
+                </button>
+                
+                <button class="uha-btn uha-btn-outline" onclick="openManualMoveModal()" style="margin-top: 10px; border-color: #e74c3c; color: #e74c3c;">
+                    🚀 Manual Bracket Override
                 </button>
             </div>
 
@@ -163,6 +167,55 @@
     </div>
 </div>
 
+<div id="manual-move-modal" class="uha-modal" style="display:none;">
+    <div class="uha-modal-content" style="max-width: 500px;">
+        <h2 style="color: var(--uha-gold);">Manual Move Tool</h2>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Force a player into a specific bracket slot.</p>
+        
+        <div style="text-align: left; margin-bottom: 15px;">
+            <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Select Division:</label>
+            <select id="move-div-idx" class="uha-input" style="width:100%"></select>
+        </div>
+
+        <div style="text-align: left; margin-bottom: 15px;">
+            <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Player Exact Name:</label>
+            <input type="text" id="move-player-name" placeholder="e.g. John Doe" class="uha-input" style="width:100%;">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; text-align:left;">
+            <div style="flex:1">
+                <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Target Bracket:</label>
+                <select id="move-target-bracket" class="uha-input" style="width:100%">
+                    <option value="bracket">Winners</option>
+                    <option value="losersBracket">Losers</option>
+                    <option value="finalsBracket">Finals</option>
+                </select>
+            </div>
+            <div style="flex:1">
+                <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Round #:</label>
+                <input type="number" id="move-target-round" placeholder="1" class="uha-input" style="width:100%;">
+            </div>
+            <div style="flex:1">
+                <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Match #:</label>
+                <input type="number" id="move-target-match" placeholder="1" class="uha-input" style="width:100%;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 25px; text-align:left;">
+            <label style="color:var(--uha-blue); font-weight:bold; font-size: 14px;">Target Slot:</label>
+            <select id="move-target-slot" class="uha-input" style="width:100%">
+                <option value="p1">Top Slot (p1)</option>
+                <option value="p2">Bottom Slot (p2)</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="uha-btn uha-btn-gold" onclick="executeManualMove()">Confirm Move</button>
+            <button class="uha-btn-outline" onclick="document.getElementById('manual-move-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+    
 <script src="app.js"></script>
 
 </body>
