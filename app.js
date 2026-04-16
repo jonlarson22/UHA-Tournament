@@ -1021,6 +1021,9 @@ window.saveScore = function() {
     const winningTeam = match.winner === 'p1' ? match.p1 : match.p2;
     const losingTeam = match.winner === 'p1' ? match.p2 : match.p1;
 
+    const wName = winningTeam && winningTeam.name ? winningTeam.name : '';
+    const lName = losingTeam && losingTeam.name ? losingTeam.name : '';
+
     let detailedGames = [];
     for(let i=0; i<3; i++) {
         let s1 = parseInt(p1Inputs[i].value);
@@ -1034,6 +1037,8 @@ window.saveScore = function() {
     }
 
     const getIdsFromNames = (teamNameStr) => {
+        if (!teamNameStr || typeof teamNameStr !== 'string') return [];
+        
         const names = teamNameStr.split(' & '); 
         return names.map(name => {
             const trimmedName = name.trim();
@@ -1044,10 +1049,12 @@ window.saveScore = function() {
 
     const pendingMatch = {
         id: Date.now(),
-        mode: div.mode.toLowerCase(), 
+        // Added a quick fallback for div.mode just in case
+        mode: div.mode ? div.mode.toLowerCase() : 'unknown', 
         score: `${Math.max(p1Wins, p2Wins)}-${Math.min(p1Wins, p2Wins)}`,
-        winners: getIdsFromNames(winningTeam.name),
-        losers: getIdsFromNames(losingTeam.name),
+        // 3. USE THE FAILSAFE VARIABLES HERE
+        winners: getIdsFromNames(wName),
+        losers: getIdsFromNames(lName),
         games: detailedGames
     };
 
