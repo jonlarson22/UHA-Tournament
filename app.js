@@ -105,9 +105,11 @@ window.toggleFormatOptions = function() {
     const format = document.getElementById('division-format').value;
     const multiSettings = document.getElementById('multi-group-settings');
     const doubleSettings = document.getElementById('double-elim-settings');
+    const singleSettings = document.getElementById('single-elim-settings');
 
     if (multiSettings) multiSettings.style.display = (format === 'multi_group_rr') ? 'block' : 'none';
     if (doubleSettings) doubleSettings.style.display = (format === 'double_elim') ? 'block' : 'none';
+    if (singleSettings) singleSettings.style.display = (format === 'single_elim') ? 'block' : 'none';
 };
 
 function refreshRosterFromDB() {
@@ -282,6 +284,9 @@ document.getElementById('btn-lock-division').addEventListener('click', () => {
     const format = document.getElementById('division-format').value;
     const finalRuleEl = document.getElementById('double-elim-final');
     const finalRule = finalRuleEl ? finalRuleEl.value : 'true_double';
+
+    const thirdPlaceEl = document.getElementById('single-elim-third-place');
+    const hasThirdPlace = thirdPlaceEl ? thirdPlaceEl.checked : false;
     
     const participantElements = document.querySelectorAll('.singles-slot, .team-slot');
     if (participantElements.length < 2) return alert("Need at least 2 participants to lock a division.");
@@ -304,6 +309,7 @@ document.getElementById('btn-lock-division').addEventListener('click', () => {
         format: format,
         mode: isDoublesMode ? "Doubles" : "Singles",
         grandFinalRule: finalRule,
+        hasThirdPlaceMatch: hasThirdPlace,
         participants: participants,
         bracket: [] 
     });
@@ -436,6 +442,10 @@ document.getElementById('btn-start').addEventListener('click', () => {
                 }
             });
             division.bracket = bracket;
+
+            if (division.hasThirdPlaceMatch && roundsCount > 1) {
+                division.thirdPlaceMatch = [[{p1: null, p2: null, p1Wins: 0, p2Wins: 0, scores: '', winner: null, isThirdPlace: true}]];
+            }
         }
             
         else if (division.format === 'double_elim') {
