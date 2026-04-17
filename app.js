@@ -683,6 +683,7 @@ window.advanceToKnockout = function(divIdx) {
     let consolationPlayers = [];
 
     if (rule === 'all_to_single') {
+
         const superSort = (a, b) => {
             if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank;
             if (b.pts !== a.pts) return b.pts - a.pts;
@@ -690,32 +691,28 @@ window.advanceToKnockout = function(divIdx) {
             if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
             return b.totalScore - a.totalScore;
         };
-        let sortedStandingObjects = [...allStandings].sort(superSort);
+        let masterSeeds = [...allStandings].sort(superSort);
 
-        let count = sortedStandingObjects.length;
-        let pairings = [];
-        for (let i = 0; i < count / 2; i++) {
-            pairings.push([sortedStandingObjects[i], sortedStandingObjects[count - 1 - i]]);
-        }
+        let total = masterSeeds.length;
+        for (let i = 0; i < total / 2; i++) {
+            let topSeed = masterSeeds[i];
+            let bottomSeedIndex = total - 1 - i;
+            let bottomSeed = masterSeeds[bottomSeedIndex];
 
-        for (let i = 0; i < pairings.length; i++) {
-            let match = pairings[i];
-            if (match[0].groupIdx === match[1].groupIdx) {
-                // Conflict found! Swap this match's p2 with the next match's p2
-                let nextIdx = (i + 1) % pairings.length;
-                let temp = pairings[i][1];
-                pairings[i][1] = pairings[nextIdx][1];
-                pairings[nextIdx][1] = temp;
-                console.log(`Swapped seeds to avoid Group ${match[0].groupIdx} rematch.`);
+            if (topSeed.groupIdx === bottomSeed.groupIdx) {
+                let swapIdx = bottomSeedIndex - 1; 
+
+                if (swapIdx >= total / 2) {
+                    let temp = masterSeeds[bottomSeedIndex];
+                    masterSeeds[bottomSeedIndex] = masterSeeds[swapIdx];
+                    masterSeeds[swapIdx] = temp;
+                    console.log(`Avoided Round 1 Rematch: Swapped ${topSeed.player.name}'s opponent.`);
+                }
             }
         }
 
-        championshipPlayers = [];
-        pairings.forEach(m => {
-            championshipPlayers.push(m[0].player);
-            championshipPlayers.push(m[1].player);
-        });
-
+        championshipPlayers = masterSeeds.map(s => s.player);
+        
     } else {
         const perfSort = (a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
