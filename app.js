@@ -652,16 +652,15 @@ function calculateStandings(players, matches) {
 });
 }
 
-    window.advanceToKnockout = function(divIdx) {
+window.advanceToKnockout = function(divIdx) {
     let div = lockedDivisions[divIdx];
-
     const champName = div.name + " (Championship)";
+
     if (lockedDivisions.some(d => d.name === champName)) {
         return alert("Knockout brackets have already been generated for this group.");
     }
 
     let allStandings = [];
-
     div.bracket.forEach((groupMatches, gIdx) => {
         let groupParticipants = div.format === 'multi_group_rr' ? div.draftedGroups[gIdx] : div.participants;
         let standings = calculateStandings(groupParticipants, groupMatches);
@@ -680,12 +679,10 @@ function calculateStandings(players, matches) {
     });
 
     const rule = div.advancementRule || 'all_to_single'; 
-    
     let championshipPlayers = [];
     let consolationPlayers = [];
 
     if (rule === 'all_to_single') {
-
         const superSort = (a, b) => {
             if (a.groupRank !== b.groupRank) return a.groupRank - b.groupRank;
             if (b.pts !== a.pts) return b.pts - a.pts;
@@ -693,11 +690,33 @@ function calculateStandings(players, matches) {
             if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
             return b.totalScore - a.totalScore;
         };
-        let sortedAll = allStandings.sort(superSort);
-        championshipPlayers = sortedAll.map(s => s.player);
-        
-    } else {
+        let sortedStandingObjects = [...allStandings].sort(superSort);
 
+        let count = sortedStandingObjects.length;
+        let pairings = [];
+        for (let i = 0; i < count / 2; i++) {
+            pairings.push([sortedStandingObjects[i], sortedStandingObjects[count - 1 - i]]);
+        }
+
+        for (let i = 0; i < pairings.length; i++) {
+            let match = pairings[i];
+            if (match[0].groupIdx === match[1].groupIdx) {
+                // Conflict found! Swap this match's p2 with the next match's p2
+                let nextIdx = (i + 1) % pairings.length;
+                let temp = pairings[i][1];
+                pairings[i][1] = pairings[nextIdx][1];
+                pairings[nextIdx][1] = temp;
+                console.log(`Swapped seeds to avoid Group ${match[0].groupIdx} rematch.`);
+            }
+        }
+
+        championshipPlayers = [];
+        pairings.forEach(m => {
+            championshipPlayers.push(m[0].player);
+            championshipPlayers.push(m[1].player);
+        });
+
+    } else {
         const perfSort = (a, b) => {
             if (b.pts !== a.pts) return b.pts - a.pts;
             if (b.winRatio !== a.winRatio) return b.winRatio - a.winRatio;
@@ -707,7 +726,6 @@ function calculateStandings(players, matches) {
         
         let rank1s = allStandings.filter(s => s.groupRank === 1).sort(perfSort);
         let poolOrder = rank1s.map(s => s.groupIdx); 
-
         if (poolOrder.length === 0) poolOrder = div.bracket.map((_, i) => i);
 
         const crossSort = (a, b) => {
@@ -721,7 +739,6 @@ function calculateStandings(players, matches) {
             let roster = [];
             for (let i = 0; i < ranks.length; i++) {
                 let rankPlayers = standings.filter(s => s.groupRank === ranks[i]).map(s => s.player);
-
                 if (i % 2 !== 0 && rankPlayers.length >= 4) {
                     let half = Math.floor(rankPlayers.length / 2);
                     rankPlayers = rankPlayers.slice(half).concat(rankPlayers.slice(0, half));
@@ -735,11 +752,9 @@ function calculateStandings(players, matches) {
             championshipPlayers = buildCrossRoster(sortedAll, [1, 2]);
         } else if (rule === 'split_bracket') { 
             championshipPlayers = buildCrossRoster(sortedAll, [1, 2]);
-            
             let maxRank = Math.max(...allStandings.map(s => s.groupRank));
             let consRanks = [];
             for(let r = 3; r <= maxRank; r++) consRanks.push(r);
-            
             consolationPlayers = buildCrossRoster(sortedAll, consRanks);
         }
     }
@@ -774,9 +789,7 @@ function calculateStandings(players, matches) {
         updatedAt: firebase.database.ServerValue.TIMESTAMP,
         divisions: lockedDivisions
     }).then(() => {
-        console.log("Knockout brackets synced to Firebase.");
-    }).catch(e => {
-        console.error("Failed to sync knockout brackets:", e);
+        console.log("Knockout brackets synced.");
     });
 };
 
